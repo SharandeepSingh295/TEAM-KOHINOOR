@@ -1,0 +1,11 @@
+# VeriFace-Chain Dependencies
+web3>=6.15.0
+eth-tester>=0.10.0b4
+py-evm>=0.10.0b1
+opencv-python-headless>=4.9.0.80
+numpy>=1.26.0
+requests>=2.31.0
+rich>=13.7.0
+pydantic>=2.6.0
+pytest>=8.0.0
+python-dotenv>=1.0.1

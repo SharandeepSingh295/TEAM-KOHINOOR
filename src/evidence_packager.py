@@ -1,5 +1,5 @@
 """
-Cryptographic Evidence Packager for VeriFace-Chain.
+Cryptographic Evidence Packager for KohinoorGuard.
 Constructs canonical, deterministic evidence packages linking facial scans
 to discovered web/social media content and produces cryptographic root hashes.
 """

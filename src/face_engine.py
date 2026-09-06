@@ -1,5 +1,5 @@
 """
-Face Detection and Encoding Engine for VeriFace-Chain.
+Face Detection and Encoding Engine for KohinoorGuard.
 Uses OpenCV's deep learning based YuNet face detector to extract facial landmarks,
 crop and normalize face images, and compute cryptographic (SHA-256) & perceptual
 feature hashes for on-chain anchoring.

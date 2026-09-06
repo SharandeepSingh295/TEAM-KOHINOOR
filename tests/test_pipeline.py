@@ -1,5 +1,5 @@
 """
-Automated Test Suite for VeriFace-Chain.
+Automated Test Suite for KohinoorGuard.
 Tests face detection, search engine asset hashing, evidence packaging,
 and end-to-end blockchain smart contract attestation & tampering detection.
 """

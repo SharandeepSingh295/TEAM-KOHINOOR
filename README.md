@@ -1,4 +1,4 @@
-# 🛡️ VeriFace-Chain
+# 🛡️ KohinoorGuard
 
 > **End-to-End Face Scan Ingestion, Live Web/Social Media Discovery, and Blockchain Tamper-Evident Attestation.**
 
@@ -12,7 +12,7 @@
 
 ## 📌 Project Overview
 
-**VeriFace-Chain** is an end-to-end audit pipeline designed to take an input face scan, discover matching public content and profiles across the live web and social media, and anchor the resulting evidence onto an EVM-compatible blockchain. 
+**KohinoorGuard** is an end-to-end audit pipeline designed to take an input face scan, discover matching public content and profiles across the live web and social media, and anchor the resulting evidence onto an EVM-compatible blockchain. 
 
 By binding a normalized biometric face crop, discovered media assets, platform metadata, and timestamps into a canonical cryptographic fingerprint, the pipeline creates an **immutable, verifiable, and tamper-evident proof of existence** that can be re-audited at any point in time.
 

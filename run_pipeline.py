@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VeriFace-Chain Pipeline Runner.
+KohinoorGuard Pipeline Runner.
 Orchestrates:
   1. Face Scan Ingestion & Biometric Feature Extraction
   2. Live Web & Social Media Reverse Discovery
@@ -39,7 +39,7 @@ console = Console()
 
 def print_banner():
     banner_text = (
-        "[bold cyan]VeriFace-Chain[/bold cyan] : [bold white]End-to-End Face Verification Pipeline[/bold white]\n"
+        "[bold cyan]KohinoorGuard[/bold cyan] : [bold white]End-to-End Face Verification Pipeline[/bold white]\n"
         "[dim]Face Scan Ingestion -> Live Web/Social Search -> Blockchain Attestation[/dim]"
     )
     console.print(Panel(banner_text, border_style="cyan", expand=False))
@@ -247,7 +247,7 @@ def run_pipeline(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="VeriFace-Chain: End-to-End Face Scan Ingestion & Blockchain Attestation Pipeline"
+        description="KohinoorGuard: End-to-End Face Scan Ingestion & Blockchain Attestation Pipeline"
     )
     parser.add_argument(
         "--image",

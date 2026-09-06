@@ -1,5 +1,5 @@
 """
-Blockchain Client and Web3 Interface for VeriFace-Chain.
+Blockchain Client and Web3 Interface for KohinoorGuard.
 Manages smart contract deployment, evidence registration, and on-chain
 cryptographic verification supporting both local EVM and public testnets.
 """

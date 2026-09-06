@@ -1,5 +1,5 @@
 """
-Genuine Visual Search and Genesis Biometric Registry for VeriFace-Chain.
+Genuine Visual Search and Genesis Biometric Registry for KohinoorGuard.
 Supports:
   1. Live Google Lens Reverse Image Lookup (via SerpApi if configured)
   2. Privacy-Preserving Genesis Biometric Origin Registration (Initial Data)
@@ -47,7 +47,7 @@ class WebSocialSearchEngine:
         self.ledger_file = ledger_file
         os.makedirs(self.output_dir, exist_ok=True)
         self.headers = {
-            "User-Agent": "VeriFace-Chain/2.0 (Biometric Integrity Verifier)"
+            "User-Agent": "KohinoorGuard/2.0 (Biometric Integrity Verifier)"
         }
 
     def identify_platform(self, url: str) -> str:

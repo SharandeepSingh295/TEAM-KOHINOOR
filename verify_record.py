@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VeriFace-Chain Standalone Verification Engine.
+KohinoorGuard Standalone Verification Engine.
 Re-verifies discovered social media data and face scans against
 the immutable records stored in the blockchain smart contract.
 Demonstrates cryptographic tamper-evidence and data integrity guarantees.
@@ -150,7 +150,7 @@ def verify_evidence(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="VeriFace-Chain: Cryptographic Blockchain Re-Verification Utility"
+        description="KohinoorGuard: Cryptographic Blockchain Re-Verification Utility"
     )
     parser.add_argument(
         "--evidence",

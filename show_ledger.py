@@ -1,6 +1,6 @@
 ﻿#!/usr/bin/env python3
 """
-VeriFace-Chain Ledger Viewer.
+KohinoorGuard Ledger Viewer.
 Displays all on-chain verification records, Genesis master proofs,
 and altered derivative alerts stored in the local blockchain ledger.
 """
@@ -40,7 +40,7 @@ def display_ledger():
         return
 
     table = Table(
-        title=f"⛓️ VeriFace-Chain On-Chain Ledger ({len(ledger)} Recorded Attestations)",
+        title=f"⛓️ KohinoorGuard On-Chain Ledger ({len(ledger)} Recorded Attestations)",
         border_style="cyan",
         header_style="bold magenta"
     )
@@ -109,7 +109,7 @@ def display_latest_manifest():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="VeriFace-Chain Ledger Viewer")
+    parser = argparse.ArgumentParser(description="KohinoorGuard Ledger Viewer")
     parser.add_argument("--latest", action="store_true", help="Print full JSON details of the latest evidence manifest")
     args = parser.parse_args()
 

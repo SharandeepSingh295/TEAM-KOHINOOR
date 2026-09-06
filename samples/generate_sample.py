@@ -1,5 +1,5 @@
 """
-Generates and downloads test sample face images for VeriFace-Chain.
+Generates and downloads test sample face images for KohinoorGuard.
 """
 
 import os

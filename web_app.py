@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VeriFace-Chain Interactive Web Application.
+KohinoorGuard Interactive Web Application.
 Provides a web user interface accessible from your browser link (http://localhost:5000).
 Supports:
   - Inputting Face Images via Direct Web URL / Link or File Upload
@@ -44,7 +44,7 @@ HTML_PAGE = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VeriFace-Chain | Decentralized Biometric Verification</title>
+  <title>KohinoorGuard | Decentralized Biometric Verification</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -66,7 +66,7 @@ HTML_PAGE = """<!DOCTYPE html>
         </div>
         <div>
           <h1 class="font-extrabold text-xl tracking-tight text-white flex items-center gap-2">
-            VeriFace<span class="text-blue-500">Chain</span>
+            Kohinoor<span class="text-blue-500">Guard</span>
             <span class="text-xs font-mono uppercase bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">EVM DApp</span>
           </h1>
           <p class="text-xs text-gray-400">Decentralized Face Ingestion & Immutable Ledger Attestation</p>
@@ -354,7 +354,7 @@ HTML_PAGE = """<!DOCTYPE html>
   <!-- Footer -->
   <footer class="border-t border-gray-800 py-6 text-center text-xs text-gray-500 bg-gray-950/60">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-      <p>VeriFace-Chain &copy; 2026 &bull; TEAM KOHINOOR</p>
+      <p>KohinoorGuard &copy; 2026 &bull; TEAM KOHINOOR</p>
       <p class="font-mono text-gray-400">Contract Address: <span id="footer-contract" class="text-blue-400 font-bold">0xF2E246BB76DF876Cef8b38ae84130F4F55De395b</span></p>
     </div>
   </footer>
@@ -765,7 +765,7 @@ def create_app():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
     print("\n=======================================================")
-    print(" VeriFace-Chain Web DApp Live!")
+    print(" KohinoorGuard Web DApp Live!")
     print(f" Web link: http://localhost:{port}")
     print("=======================================================\n")
     app = create_app()

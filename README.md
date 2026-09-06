@@ -142,8 +142,12 @@ python deploy.py --chain local
 ```
 
 ### Run the Full Pipeline
-Ingests a face scan, performs live social discovery, packages evidence, and records it on the blockchain:
+Ingests a face scan, performs genuine live reverse-image search via Google Lens (or Genesis Registry), packages evidence, and records it on the blockchain:
 ```bash
+# Example 1: Live Reverse-Image Search across Web & Social (Discovers live Twitter/X post)
+python run_pipeline.py --image samples/elonmask.jpg --chain local
+
+# Example 2: Genesis Origin & Alteration Biometric Registry
 python run_pipeline.py --image samples/real_sample_face.jpg --chain local
 ```
 

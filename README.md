@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![Web3.py](https://img.shields.io/badge/Web3.py-v8.0.0-F16822?logo=ethereum)](https://web3py.readthedocs.io/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-YuNet_DNN-5C3EE8?logo=opencv)](https://opencv.org/)
-[![Tests](https://img.shields.io/badge/Tests-4%2F4%20Passing-brightgreen)](https://docs.pytest.org/)
+[![Tests](https://img.shields.io/badge/Tests-5%2F5%20Passing-brightgreen)](https://docs.pytest.org/)
 
 ---
 
@@ -33,10 +33,11 @@ By binding a normalized biometric face crop, discovered media assets, platform m
                            │ normalized_face_crop.jpg + face_hash
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ STAGE 2: Live Web & Social Media Discovery                  │
-│ • Genuine reverse image / visual search lookup              │
-│ • Live Social Graph crawler (GitHub, Twitter/X, Reddit)     │
-│ • Optional SerpApi Google Lens integration                  │
+│ STAGE 2: Live Web / Social Media Discovery & Genesis Proof │
+│ • Genuine Google Lens reverse image search (via SerpApi)    │
+│ • Zero mock/hardcoded results; strict user privacy          │
+│ • If unseen: anchors as Genesis Original Master Reference   │
+│ • If altered: flags Altered Derivative & Biometric Tamper   │
 │ • Downloads matched asset & computes SHA-256 media hash     │
 └──────────────────────────┬──────────────────────────────────┘
                            │ post_url + media_hash + metadata
@@ -164,10 +165,11 @@ Output:
 │ Attribute        │ On-Chain Ledger       │ Current Live Asset    │  Status  │
 ├──────────────────┼───────────────────────┼───────────────────────┼──────────┤
 │ Face Hash        │ 0x26f6d7315d63...     │ 0x26f6d7315d63...     │  MATCH   │
-│ Media Asset Hash │ 0x46c0a768be95...     │ 0x46c0a768be95...     │  MATCH   │
-│ Post Source URL  │ https://github.com/R… │ https://github.com/R… │  MATCH   │
-│ Platform         │ GitHub Social         │ GitHub Social         │  MATCH   │
-│ Ledger Timestamp │ 1788633028            │ 1788632963            │ RECORDED │
+│ Media Asset Hash │ 0x09188192df06...     │ 0x09188192df06...     │  MATCH   │
+│ Post Source URL  │ genesis://master-ass… │ genesis://master-ass… │  MATCH   │
+│ Platform         │ Genesis Origin        │ Genesis Origin        │  MATCH   │
+│                  │ Registry              │ Registry              │          │
+│ Ledger Timestamp │ 1788694695            │ 1788694563            │ RECORDED │
 └──────────────────┴───────────────────────┴───────────────────────┴──────────┘
 ┌──────────────────────────── VERIFIED AUTHENTIC ─────────────────────────────┐
 │ ✔ RE-VERIFICATION PASSED                                                    │
@@ -204,6 +206,7 @@ pytest -v
 2. `test_search_engine_platform_identification`: Validates domain-to-platform mapping (Twitter/X, Reddit, GitHub, LinkedIn).
 3. `test_evidence_packaging_determinism`: Proves mathematical determinism of canonical Keccak-256 evidence hashes.
 4. `test_blockchain_smart_contract_full_cycle`: Tests on-chain deployment, record registration, retrieval, authentic verification, and tamper rejection.
+5. `test_genesis_origin_and_altered_derivative_detection`: Tests anchoring of unseen faces as Genesis Originals and automated biometric detection & flagging of altered photo derivatives.
 
 ---
 

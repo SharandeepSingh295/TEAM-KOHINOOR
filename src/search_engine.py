@@ -45,7 +45,7 @@ class WebSocialSearchEngine:
         output_dir: str = "output",
         ledger_file: Optional[str] = None
     ):
-        self.serpapi_key = serpapi_key or os.getenv("SERPAPI_API_KEY", "").strip()
+        self.serpapi_key = os.getenv("SERPAPI_API_KEY", "").strip() if serpapi_key is None else serpapi_key.strip()
         self.output_dir = output_dir
         self.ledger_file = ledger_file
         os.makedirs(self.output_dir, exist_ok=True)
@@ -89,12 +89,34 @@ class WebSocialSearchEngine:
         if not self.serpapi_key:
             return []
 
-        url = "https://serpapi.com/search"
         try:
+            # Step 1: Upload local image to SerpApi Image API to get image_id
             with open(image_path, "rb") as f:
-                files = {"file": f}
-                params = {"engine": "google_lens", "api_key": self.serpapi_key}
-                response = requests.post(url, params=params, files=files, timeout=15)
+                up_resp = requests.post(
+                    "https://serpapi.com/image",
+                    files={"image": f},
+                    data={"api_key": self.serpapi_key},
+                    headers={"User-Agent": "KohinoorGuard/2.0"},
+                    timeout=15
+                )
+            if up_resp.status_code != 200:
+                return []
+            image_id = up_resp.json().get("image_id")
+            if not image_id:
+                return []
+
+            # Step 2: Perform Google Lens visual search using image_id
+            params = {
+                "engine": "google_lens",
+                "image_id": image_id,
+                "api_key": self.serpapi_key
+            }
+            response = requests.get(
+                "https://serpapi.com/search",
+                params=params,
+                headers={"User-Agent": "KohinoorGuard/2.0"},
+                timeout=20
+            )
 
             if response.status_code != 200:
                 return []

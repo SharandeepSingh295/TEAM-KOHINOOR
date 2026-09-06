@@ -146,7 +146,7 @@ def test_genesis_origin_and_altered_derivative_detection(sample_image, tmp_path)
     orig_face = face_engine.process_face_scan(sample_image, output_crop_dir=str(tmp_path))
 
     tmp_ledger = str(tmp_path / "local_ledger.json")
-    search_engine = WebSocialSearchEngine(output_dir=str(tmp_path), ledger_file=tmp_ledger)
+    search_engine = WebSocialSearchEngine(serpapi_key="", output_dir=str(tmp_path), ledger_file=tmp_ledger)
     orig_match = search_engine.execute_search(image_path=sample_image, face_result=orig_face)
 
     # First upload of unseen face MUST be classified as Genesis Original

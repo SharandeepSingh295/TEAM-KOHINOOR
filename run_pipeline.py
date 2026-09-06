@@ -227,6 +227,19 @@ def run_pipeline(
             title="[bold red]✖ TAMPER / ALTERATION DETECTED[/bold red]",
             border_style="red"
         )
+    elif social_match.record_type == "PUBLIC_WEB_MATCH" and is_valid and on_chain_record["exists"]:
+        summary_panel = Panel(
+            f"[bold green]PUBLIC SOCIAL POST FOUND & ANCHORED IMMUTABLY ON-CHAIN[/bold green]\n\n"
+            f"[bold white]Evidence Root Hash:[/bold white] {receipt['evidence_hash']}\n"
+            f"[bold white]Discovered Platform:[/bold white] [bold magenta]{on_chain_record['platform']}[/bold magenta]\n"
+            f"[bold white]Verified Social Post URL:[/bold white] [underline blue]{on_chain_record['source_url']}[/underline blue]\n"
+            f"[bold white]Author / Handle:[/bold white] {social_match.author}\n"
+            f"[bold white]Block Number / Time:[/bold white] #{receipt['block_number']} (Timestamp: {on_chain_record['timestamp']})\n"
+            f"[bold white]Integrity Status:[/bold white] [bold green]100% UNCOMPROMISED (Live Social Asset Verified)[/bold green]\n\n"
+            f"[dim]Run `python verify_record.py --evidence {os.path.join(output_dir, 'evidence_manifest.json')}` anytime.[/dim]",
+            title="[bold green]✔ SOCIAL POST FOUND & VERIFIED ON-CHAIN[/bold green]",
+            border_style="green"
+        )
     elif is_valid and on_chain_record["exists"]:
         summary_panel = Panel(
             f"[bold green]GENESIS ORIGINAL: MASTER RECORD ANCHORED IMMUTABLY ON-CHAIN[/bold green]\n\n"
@@ -269,10 +282,16 @@ def main():
         help="Custom EVM RPC URL (required if --chain testnet and not set in .env)"
     )
     parser.add_argument(
+        "--social-url",
+        type=str,
+        default=None,
+        help="Target live social post/profile URL (e.g. GitHub, Twitter/X, Reddit)"
+    )
+    parser.add_argument(
         "--query-hint",
         type=str,
         default=None,
-        help="Optional search query hint for web discovery"
+        help="Optional search query hint or username for social discovery"
     )
     parser.add_argument(
         "--output",
@@ -282,12 +301,13 @@ def main():
     )
 
     args = parser.parse_args()
+    hint = args.social_url or args.query_hint
     run_pipeline(
         image_path=args.image,
         chain_mode=args.chain,
         rpc_url=args.rpc,
         output_dir=args.output,
-        search_query_hint=args.query_hint
+        search_query_hint=hint
     )
 
 

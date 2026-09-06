@@ -257,6 +257,9 @@ def run_pipeline(
         summary_panel = Panel("[bold red]Re-verification failed.[/bold red]", border_style="red")
     console.print(summary_panel)
 
+    if on_chain_record.get("source_url", "").startswith(("http://", "https://")):
+        console.print(f"[bold green]🔗 Direct Clickable Social Link:[/bold green] [bold underline cyan]{on_chain_record['source_url']}[/bold underline cyan]\n")
+
 
 def main():
     parser = argparse.ArgumentParser(

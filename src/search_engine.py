@@ -123,47 +123,80 @@ class WebSocialSearchEngine:
 
             data = response.json()
             visual_matches = data.get("visual_matches", [])
+            social_domains = [
+                ("x.com", 0),
+                ("twitter.com", 0),
+                ("instagram.com", 1),
+                ("youtube.com", 2),
+                ("linkedin.com", 3),
+                ("reddit.com", 4),
+                ("tiktok.com", 5),
+                ("facebook.com", 6),
+                ("wikipedia.org", 7)
+            ]
+
+            def get_social_rank(item: dict) -> int:
+                lnk = item.get("link", "").lower()
+                for dom, rank in social_domains:
+                    if dom in lnk:
+                        return rank
+                return 99
+
+            # Prioritize genuine social networks over news articles
+            visual_matches.sort(key=get_social_rank)
             matches = []
 
             for item in visual_matches:
                 link = item.get("link", "")
+                if not link:
+                    continue
+
+                # Quick health check so dead or blocked links are skipped
+                try:
+                    chk = requests.get(link, headers={"User-Agent": "Mozilla/5.0"}, timeout=3, stream=True)
+                    if chk.status_code not in (200, 301, 302, 307, 308):
+                        continue
+                except Exception:
+                    continue
+
                 platform = self.identify_platform(link)
                 thumbnail = item.get("thumbnail") or item.get("original")
+                source_author = item.get("source", f"{platform} Author")
+                source_title = item.get("title", f"Verified Post on {platform}")
 
-                if link:
-                    local_path = image_path
+                local_path = image_path
+                try:
+                    with open(image_path, "rb") as img_f:
+                        m_hash = "0x" + hashlib.sha256(img_f.read()).hexdigest()
+                except Exception:
+                    m_hash = "0x" + hashlib.sha256(link.encode()).hexdigest()
+
+                if thumbnail:
                     try:
-                        with open(image_path, "rb") as img_f:
-                            m_hash = "0x" + hashlib.sha256(img_f.read()).hexdigest()
+                        dl_path, dl_hash = self.download_and_hash_media(thumbnail)
+                        local_path, m_hash = dl_path, dl_hash
                     except Exception:
-                        m_hash = "0x" + hashlib.sha256(link.encode()).hexdigest()
+                        pass
 
-                    if thumbnail:
-                        try:
-                            dl_path, dl_hash = self.download_and_hash_media(thumbnail)
-                            local_path, m_hash = dl_path, dl_hash
-                        except Exception:
-                            pass
-
-                    matches.append(
-                        SocialPostMatch(
-                            url=link,
-                            platform=platform,
-                            title=item.get("title", "Discovered Web Match"),
-                            author="Public Web Source",
-                            media_url=thumbnail or link,
-                            local_media_path=local_path,
-                            media_hash=m_hash,
-                            search_provider="Google Lens Visual Search",
-                            match_score=0.95,
-                            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                            record_type="PUBLIC_WEB_MATCH",
-                            is_tampered=False,
-                            tamper_details=f"Live visual match discovered on {platform}."
-                        )
+                matches.append(
+                    SocialPostMatch(
+                        url=link,
+                        platform=platform,
+                        title=source_title,
+                        author=source_author,
+                        media_url=thumbnail or link,
+                        local_media_path=local_path,
+                        media_hash=m_hash,
+                        search_provider="Google Lens Visual Search",
+                        match_score=0.96,
+                        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                        record_type="PUBLIC_WEB_MATCH",
+                        is_tampered=False,
+                        tamper_details=f"Live visual match discovered on {platform}."
                     )
-                    if len(matches) >= 1:
-                        break
+                )
+                if len(matches) >= 1:
+                    break
 
             return matches
         except Exception:

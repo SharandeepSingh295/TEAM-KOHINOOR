@@ -21,11 +21,13 @@ class BlockchainClient:
         rpc_url: Optional[str] = None,
         private_key: Optional[str] = None,
         contract_address: Optional[str] = None,
-        contract_artifact_path: str = "contracts/compiled_contract.json"
+        contract_artifact_path: str = "contracts/compiled_contract.json",
+        ledger_file: Optional[str] = None
     ):
         self.mode = mode.lower()
         self.contract_artifact_path = contract_artifact_path
         self.contract_address = contract_address
+        self.ledger_file = ledger_file or LOCAL_LEDGER_FILE
 
         # Load compiled contract ABI and Bytecode
         if not os.path.exists(self.contract_artifact_path):
@@ -114,24 +116,24 @@ class BlockchainClient:
 
     def _persist_local_ledger(self, record_data: Dict[str, Any]):
         """Persists local records to disk for cross-process local testing."""
-        os.makedirs(os.path.dirname(LOCAL_LEDGER_FILE), exist_ok=True)
+        os.makedirs(os.path.dirname(self.ledger_file) or ".", exist_ok=True)
         ledger = {}
-        if os.path.exists(LOCAL_LEDGER_FILE):
+        if os.path.exists(self.ledger_file):
             try:
-                with open(LOCAL_LEDGER_FILE, "r", encoding="utf-8") as f:
+                with open(self.ledger_file, "r", encoding="utf-8") as f:
                     ledger = json.load(f)
             except Exception:
                 ledger = {}
         ledger[record_data["evidence_hash"]] = record_data
-        with open(LOCAL_LEDGER_FILE, "w", encoding="utf-8") as f:
+        with open(self.ledger_file, "w", encoding="utf-8") as f:
             json.dump(ledger, f, indent=2)
 
     def _restore_local_ledger(self):
         """Restores persisted records onto the in-memory provider."""
-        if not os.path.exists(LOCAL_LEDGER_FILE):
+        if not os.path.exists(self.ledger_file):
             return
         try:
-            with open(LOCAL_LEDGER_FILE, "r", encoding="utf-8") as f:
+            with open(self.ledger_file, "r", encoding="utf-8") as f:
                 ledger = json.load(f)
             for ev_hash, item in ledger.items():
                 ev_b = self._to_bytes32(ev_hash)
@@ -152,7 +154,8 @@ class BlockchainClient:
         face_hash: str,
         media_hash: str,
         source_url: str,
-        platform: str
+        platform: str,
+        extra_metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Submits verification record to the blockchain registry using canonical evidenceHash.
@@ -201,6 +204,9 @@ class BlockchainClient:
             "timestamp": timestamp,
             "status": "CONFIRMED"
         }
+
+        if extra_metadata:
+            result.update(extra_metadata)
 
         if self.mode == "local":
             self._persist_local_ledger(result)

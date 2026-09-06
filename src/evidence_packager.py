@@ -85,6 +85,10 @@ class EvidencePackager:
                 "crop_path": face_result.crop_path,
                 "confidence": face_result.confidence
             },
+            "record_type": getattr(social_match, "record_type", "GENESIS_ORIGINAL"),
+            "is_tampered": getattr(social_match, "is_tampered", False),
+            "genesis_reference_hash": getattr(social_match, "genesis_reference_hash", None),
+            "tamper_details": getattr(social_match, "tamper_details", None),
             "social_media_data": {
                 "platform": social_match.platform,
                 "post_url": social_match.url,
@@ -94,7 +98,11 @@ class EvidencePackager:
                 "local_media_path": social_match.local_media_path,
                 "media_hash": social_match.media_hash,
                 "search_provider": social_match.search_provider,
-                "match_score": social_match.match_score
+                "match_score": social_match.match_score,
+                "record_type": getattr(social_match, "record_type", "GENESIS_ORIGINAL"),
+                "is_tampered": getattr(social_match, "is_tampered", False),
+                "genesis_reference_hash": getattr(social_match, "genesis_reference_hash", None),
+                "tamper_details": getattr(social_match, "tamper_details", None)
             },
             "blockchain_status": {
                 "anchored": False,

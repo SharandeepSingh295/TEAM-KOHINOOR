@@ -53,6 +53,30 @@ class FaceEngine:
         diff = resized[:, 1:] > resized[:, :-1]
         return "".join(["1" if b else "0" for b in diff.flatten()])
 
+    @staticmethod
+    def hamming_distance(hash1: str, hash2: str) -> int:
+        """Computes the Hamming distance between two binary hash strings."""
+        if not hash1 or not hash2 or len(hash1) != len(hash2):
+            return 999
+        return sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+
+    @staticmethod
+    def compute_similarity(hash1: str, hash2: str) -> float:
+        """Computes visual similarity ratio (0.0 to 1.0) based on perceptual dHash."""
+        if not hash1 or not hash2 or len(hash1) != len(hash2):
+            return 0.0
+        distance = sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+        return max(0.0, 1.0 - (distance / len(hash1)))
+
+    @classmethod
+    def is_same_subject(cls, hash1: str, hash2: str, threshold: float = 0.80) -> Tuple[bool, float]:
+        """
+        Determines if two perceptual hashes represent the same subject.
+        Threshold of 0.80 accommodates modifications (compression, edits, lighting, minor crops).
+        """
+        sim = cls.compute_similarity(hash1, hash2)
+        return (sim >= threshold), sim
+
     def process_face_scan(
         self,
         image_path: str,

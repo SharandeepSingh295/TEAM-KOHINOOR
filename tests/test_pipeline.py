@@ -138,3 +138,56 @@ def test_blockchain_smart_contract_full_cycle():
     tampered_media_hash = "0x" + hashlib.sha256(b"tampered_fake_media").hexdigest()
     is_tampered_valid = client.verify_integrity(evidence_hash, tampered_media_hash)
     assert is_tampered_valid is False, "Smart contract MUST detect cryptographic tampering!"
+
+
+def test_genesis_origin_and_altered_derivative_detection(sample_image, tmp_path):
+    import cv2
+    face_engine = FaceEngine()
+    orig_face = face_engine.process_face_scan(sample_image, output_crop_dir=str(tmp_path))
+
+    tmp_ledger = str(tmp_path / "local_ledger.json")
+    search_engine = WebSocialSearchEngine(output_dir=str(tmp_path), ledger_file=tmp_ledger)
+    orig_match = search_engine.execute_search(image_path=sample_image, face_result=orig_face)
+
+    # First upload of unseen face MUST be classified as Genesis Original
+    assert orig_match.record_type == "GENESIS_ORIGINAL"
+    assert orig_match.is_tampered is False
+    assert orig_match.platform == "Genesis Origin Registry"
+
+    # Package evidence
+    packager = EvidencePackager(output_dir=str(tmp_path))
+    manifest = packager.create_package(face_result=orig_face, social_match=orig_match)
+
+    client = BlockchainClient(mode="local", ledger_file=tmp_ledger)
+    extra_meta = {
+        "perceptual_hash": orig_face.perceptual_hash,
+        "face_crop_path": orig_face.crop_path,
+        "record_type": orig_match.record_type,
+        "is_tampered": False
+    }
+    receipt = client.record_verification(
+        evidence_hash=manifest["evidence_hash"],
+        face_hash=orig_face.face_hash,
+        media_hash=orig_match.media_hash,
+        source_url=orig_match.url,
+        platform=orig_match.platform,
+        extra_metadata=extra_meta
+    )
+    assert receipt["status"] == "CONFIRMED"
+
+    # Create an altered/modified version of the same image (brightness/contrast tweak)
+    img = cv2.imread(sample_image)
+    altered_img = cv2.convertScaleAbs(img, alpha=1.05, beta=10)
+    altered_path = str(tmp_path / "altered_face.jpg")
+    cv2.imwrite(altered_path, altered_img)
+
+    altered_face = face_engine.process_face_scan(altered_path, output_crop_dir=str(tmp_path))
+    sim = FaceEngine.compute_similarity(orig_face.perceptual_hash, altered_face.perceptual_hash)
+    assert sim >= 0.80
+
+    # Searching with altered image MUST detect the Genesis origin and flag alteration/tampering
+    alt_match = search_engine.execute_search(image_path=altered_path, face_result=altered_face)
+    assert alt_match.record_type == "ALTERED_DERIVATIVE"
+    assert alt_match.is_tampered is True
+    assert alt_match.genesis_reference_hash == receipt["evidence_hash"]
+    assert "modified" in alt_match.tamper_details.lower()

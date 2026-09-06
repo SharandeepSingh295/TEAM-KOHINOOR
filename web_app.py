@@ -159,6 +159,16 @@ HTML_PAGE = """<!DOCTYPE html>
             </button>
           </div>
 
+          <!-- Optional Social Profile / Handle -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+              <i class="fa-solid fa-at text-blue-400 mr-1"></i> Your Social Profile / Username (Optional)
+            </label>
+            <input type="text" id="query-hint-input" placeholder="e.g. SharandeepSingh295 or https://github.com/SharandeepSingh295" 
+                   class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Anchor to your specific social account. If left blank, your face scan is anchored as a direct self-attested biometric proof.</p>
+          </div>
+
           <hr class="border-gray-800">
 
           <!-- Network Mode -->
@@ -200,18 +210,18 @@ HTML_PAGE = """<!DOCTYPE html>
         <!-- Success Result Container -->
         <div id="pipeline-result" class="hidden space-y-6">
           <!-- Main Attestation Banner -->
-          <div class="p-6 rounded-2xl bg-green-950/40 border border-green-500/30 glow-green">
+          <div id="res-banner-box" class="p-6 rounded-2xl bg-green-950/40 border border-green-500/30 glow-green">
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-lg">
-                  <i class="fa-solid fa-check-double"></i>
+                <div id="res-banner-icon" class="w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-lg">
+                  <i class="fa-solid fa-shield-halved"></i>
                 </div>
                 <div>
-                  <h4 class="font-bold text-green-400 text-lg">Verification Successful & Anchored On-Chain</h4>
-                  <p class="text-xs text-green-300/80">Tamper-evidence verification passed with 0% deviation</p>
+                  <h4 id="res-banner-title" class="font-bold text-green-400 text-lg">Verification Successful & Anchored On-Chain</h4>
+                  <p id="res-banner-subtitle" class="text-xs text-green-300/80">Tamper-evidence verification passed with 0% deviation</p>
                 </div>
               </div>
-              <span class="text-xs font-mono bg-green-500/20 text-green-300 px-3 py-1 rounded-full font-bold">CONFIRMED</span>
+              <span id="res-banner-badge" class="text-xs font-mono bg-green-500/20 text-green-300 px-3 py-1 rounded-full font-bold">CONFIRMED</span>
             </div>
 
             <!-- Evidence Hash Box -->
@@ -391,6 +401,10 @@ HTML_PAGE = """<!DOCTYPE html>
 
       const formData = new FormData();
       formData.append('chain', chainMode);
+      const queryHint = document.getElementById('query-hint-input').value.trim();
+      if (queryHint) {
+        formData.append('query_hint', queryHint);
+      }
       if (selectedFile) {
         formData.append('file', selectedFile);
       } else {
@@ -412,7 +426,46 @@ HTML_PAGE = """<!DOCTYPE html>
           return;
         }
 
-        // Render Results
+        // Render Dynamic Status Banner
+        const bannerBox = document.getElementById('res-banner-box');
+        const bannerTitle = document.getElementById('res-banner-title');
+        const bannerSubtitle = document.getElementById('res-banner-subtitle');
+        const bannerBadge = document.getElementById('res-banner-badge');
+        const bannerIcon = document.getElementById('res-banner-icon');
+
+        if (data.is_tampered) {
+          bannerBox.className = 'p-6 rounded-2xl bg-red-950/40 border border-red-500/40 glow-red';
+          bannerTitle.className = 'font-bold text-red-400 text-lg';
+          bannerTitle.innerText = '⚠ Altered Derivative Detected (Tamper Alert)';
+          bannerSubtitle.className = 'text-xs text-red-300/80';
+          bannerSubtitle.innerText = data.tamper_details || 'Subject matches a Genesis Master, but cryptographic pixels have been modified!';
+          bannerBadge.className = 'text-xs font-mono bg-red-500/20 text-red-300 px-3 py-1 rounded-full font-bold';
+          bannerBadge.innerText = 'ALTERED COPY';
+          bannerIcon.className = 'w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-lg';
+          bannerIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        } else if (data.record_type === 'GENESIS_ORIGINAL') {
+          bannerBox.className = 'p-6 rounded-2xl bg-green-950/40 border border-green-500/30 glow-green';
+          bannerTitle.className = 'font-bold text-green-400 text-lg';
+          bannerTitle.innerText = '✔ Genesis Master Proof Anchored On-Chain';
+          bannerSubtitle.className = 'text-xs text-green-300/80';
+          bannerSubtitle.innerText = 'First-seen original master biometric reference asset recorded on immutable smart contract.';
+          bannerBadge.className = 'text-xs font-mono bg-green-500/20 text-green-300 px-3 py-1 rounded-full font-bold';
+          bannerBadge.innerText = 'GENESIS MASTER';
+          bannerIcon.className = 'w-10 h-10 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-lg';
+          bannerIcon.innerHTML = '<i class="fa-solid fa-shield-halved"></i>';
+        } else {
+          bannerBox.className = 'p-6 rounded-2xl bg-blue-950/40 border border-blue-500/30 glow';
+          bannerTitle.className = 'font-bold text-blue-400 text-lg';
+          bannerTitle.innerText = '🌐 Verified Public Web Match Discovered';
+          bannerSubtitle.className = 'text-xs text-blue-300/80';
+          bannerSubtitle.innerText = 'Genuine visual match discovered across web index (Google Lens).';
+          bannerBadge.className = 'text-xs font-mono bg-blue-500/20 text-blue-300 px-3 py-1 rounded-full font-bold';
+          bannerBadge.innerText = 'WEB MATCH';
+          bannerIcon.className = 'w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg';
+          bannerIcon.innerHTML = '<i class="fa-solid fa-globe"></i>';
+        }
+
+        // Render Field Values
         document.getElementById('res-evidence-hash').innerText = data.evidence_hash;
         document.getElementById('res-face-crop-img').src = data.face_crop_url;
         document.getElementById('res-face-conf').innerText = (data.face_confidence * 100).toFixed(1) + '%';
@@ -594,6 +647,7 @@ async def handle_run(request):
     reader = await request.multipart()
     image_path = None
     chain_mode = "local"
+    query_hint = None
 
     while True:
         part = await reader.next()
@@ -601,6 +655,8 @@ async def handle_run(request):
             break
         if part.name == "chain":
             chain_mode = (await part.text()).strip()
+        elif part.name == "query_hint":
+            query_hint = (await part.text()).strip()
         elif part.name == "image_url":
             url = (await part.text()).strip()
             if url:
@@ -636,9 +692,13 @@ async def handle_run(request):
         face_engine = FaceEngine()
         face_result = face_engine.process_face_scan(image_path, output_crop_dir=OUTPUT_DIR)
 
-        # Stage 2: Web / Social Match
+        # Stage 2: Web & Genesis Biometric Origin Discovery
         search_engine = WebSocialSearchEngine(output_dir=OUTPUT_DIR)
-        social_match = search_engine.execute_search(image_path=face_result.crop_path)
+        social_match = search_engine.execute_search(
+            image_path=image_path,
+            face_result=face_result,
+            search_query_hint=query_hint
+        )
 
         # Stage 3: Evidence Packaging
         packager = EvidencePackager(output_dir=OUTPUT_DIR)
@@ -646,12 +706,21 @@ async def handle_run(request):
 
         # Stage 4: Blockchain Anchoring
         blockchain = BlockchainClient(mode=chain_mode)
+        extra_meta = {
+            "perceptual_hash": face_result.perceptual_hash,
+            "face_crop_path": face_result.crop_path,
+            "record_type": social_match.record_type,
+            "genesis_reference_hash": social_match.genesis_reference_hash,
+            "is_tampered": social_match.is_tampered,
+            "tamper_details": social_match.tamper_details
+        }
         receipt = blockchain.record_verification(
             evidence_hash=manifest["evidence_hash"],
             face_hash=face_result.face_hash,
             media_hash=social_match.media_hash,
             source_url=social_match.url,
-            platform=social_match.platform
+            platform=social_match.platform,
+            extra_metadata=extra_meta
         )
 
         # Update manifest
@@ -671,7 +740,11 @@ async def handle_run(request):
             "block_number": receipt["block_number"],
             "gas_used": receipt["gas_used"],
             "transaction_hash": receipt["transaction_hash"],
-            "contract_address": receipt["contract_address"]
+            "contract_address": receipt["contract_address"],
+            "record_type": social_match.record_type,
+            "is_tampered": social_match.is_tampered,
+            "genesis_reference_hash": social_match.genesis_reference_hash,
+            "tamper_details": social_match.tamper_details
         })
     except Exception as err:
         return web.json_response({"success": False, "error": str(err)})

@@ -98,9 +98,9 @@ def run_pipeline(
     console.print(stage1_table)
 
     # -------------------------------------------------------------
-    # STAGE 2: Web & Social Media Discovery
+    # STAGE 2: Web & Genesis Biometric Origin Discovery
     # -------------------------------------------------------------
-    console.print("\n[bold yellow]STAGE 2:[/bold yellow] [bold white]Live Web & Social Media Reverse Discovery[/bold white]")
+    console.print("\n[bold yellow]STAGE 2:[/bold yellow] [bold white]Genuine Web Search & Genesis Biometric Registry[/bold white]")
     search_engine = WebSocialSearchEngine(output_dir=output_dir)
 
     with Progress(
@@ -108,19 +108,23 @@ def run_pipeline(
         TextColumn("[progress.description]{task.description}"),
         transient=True
     ) as progress:
-        progress.add_task(description="Querying visual search engine for matching social content...", total=None)
+        progress.add_task(description="Checking live web index and Genesis biometric registry...", total=None)
         social_match = search_engine.execute_search(
-            image_path=face_result.crop_path,
+            image_path=image_path,
+            face_result=face_result,
             search_query_hint=search_query_hint
         )
 
     stage2_table = Table(show_header=False, box=None)
-    stage2_table.add_row("[green]+[/green] Search Engine Provider:", f"{social_match.search_provider}")
-    stage2_table.add_row("[green]+[/green] Discovered Platform:", f"[bold magenta]{social_match.platform}[/bold magenta]")
-    stage2_table.add_row("[green]+[/green] Verified Post URL:", f"[underline blue]{social_match.url}[/underline blue]")
-    stage2_table.add_row("[green]+[/green] Content Author/Handle:", f"{social_match.author}")
-    stage2_table.add_row("[green]+[/green] Downloaded Media Asset:", f"{social_match.local_media_path}")
-    stage2_table.add_row("[green]+[/green] Content SHA-256 Hash:", f"[bold cyan]{social_match.media_hash}[/bold cyan]")
+    stage2_table.add_row("[green]+[/green] Verification Status:", f"[bold {'red' if social_match.is_tampered else 'green'}]{social_match.record_type}[/bold {'red' if social_match.is_tampered else 'green'}]")
+    stage2_table.add_row("[green]+[/green] Engine / Provider:", f"{social_match.search_provider}")
+    stage2_table.add_row("[green]+[/green] Origin / Platform:", f"[bold magenta]{social_match.platform}[/bold magenta]")
+    stage2_table.add_row("[green]+[/green] Verified Identifier URL:", f"[underline blue]{social_match.url}[/underline blue]")
+    stage2_table.add_row("[green]+[/green] Media Asset Fingerprint:", f"[bold cyan]{social_match.media_hash}[/bold cyan]")
+    if social_match.genesis_reference_hash:
+        stage2_table.add_row("[yellow]![/yellow] Genesis Master Hash:", f"[bold yellow]{social_match.genesis_reference_hash}[/bold yellow]")
+    if social_match.tamper_details:
+        stage2_table.add_row("[yellow]![/yellow] Integrity Notice:", f"[italic white]{social_match.tamper_details}[/italic white]")
     console.print(stage2_table)
 
     # -------------------------------------------------------------
@@ -155,13 +159,23 @@ def run_pipeline(
             mode=chain_mode,
             rpc_url=rpc_url
         )
-        
+
+        extra_meta = {
+            "perceptual_hash": face_result.perceptual_hash,
+            "face_crop_path": face_result.crop_path,
+            "record_type": social_match.record_type,
+            "genesis_reference_hash": social_match.genesis_reference_hash,
+            "is_tampered": social_match.is_tampered,
+            "tamper_details": social_match.tamper_details
+        }
+
         receipt = blockchain.record_verification(
             evidence_hash=manifest["evidence_hash"],
             face_hash=face_result.face_hash,
             media_hash=social_match.media_hash,
             source_url=social_match.url,
-            platform=social_match.platform
+            platform=social_match.platform,
+            extra_metadata=extra_meta
         )
 
     # Update manifest with on-chain receipt
@@ -202,21 +216,33 @@ def run_pipeline(
         )
         on_chain_record = blockchain.fetch_record(receipt["evidence_hash"])
 
-    if is_valid and on_chain_record["exists"]:
+    if social_match.is_tampered:
         summary_panel = Panel(
-            f"[bold green]AUTHENTICITY VERIFIED: DATA RECORDED IMMUTABLY ON-CHAIN[/bold green]\n\n"
+            f"[bold red]⚠ ALTERED DERIVATIVE DETECTED (INTEGRITY ALERT)[/bold red]\n\n"
+            f"[bold white]Status:[/bold white] [bold red]MODIFIED / ALTERED PHOTO[/bold red]\n"
+            f"[bold white]Genesis Reference Master:[/bold white] {social_match.genesis_reference_hash}\n"
+            f"[bold white]Notice:[/bold white] {social_match.tamper_details}\n"
+            f"[bold white]On-Chain Attestation Root:[/bold white] {receipt['evidence_hash']}\n\n"
+            f"[dim]The system successfully matched the subject to the Genesis proof and detected unauthorized pixel tampering.[/dim]",
+            title="[bold red]✖ TAMPER / ALTERATION DETECTED[/bold red]",
+            border_style="red"
+        )
+    elif is_valid and on_chain_record["exists"]:
+        summary_panel = Panel(
+            f"[bold green]GENESIS ORIGINAL: MASTER RECORD ANCHORED IMMUTABLY ON-CHAIN[/bold green]\n\n"
             f"[bold white]Evidence Root Hash:[/bold white] {receipt['evidence_hash']}\n"
-            f"[bold white]Face Match URL:[/bold white] {on_chain_record['source_url']}\n"
-            f"[bold white]Platform:[/bold white] {on_chain_record['platform']}\n"
+            f"[bold white]Record Classification:[/bold white] [bold green]GENESIS MASTER REFERENCE[/bold green]\n"
+            f"[bold white]Origin URI:[/bold white] {on_chain_record['source_url']}\n"
+            f"[bold white]Registry:[/bold white] {on_chain_record['platform']}\n"
             f"[bold white]Block Timestamp:[/bold white] {on_chain_record['timestamp']}\n"
-            f"[bold white]Tamper-Evidence State:[/bold white] [bold green]UNCOMPROMISED (0% Deviation)[/bold green]\n\n"
-            f"[dim]Run `python verify_record.py --evidence {os.path.join(output_dir, 'evidence_manifest.json')}` to verify anytime.[/dim]",
+            f"[bold white]Integrity Status:[/bold white] [bold green]100% UNCOMPROMISED (Original Master)[/bold green]\n\n"
+            f"[dim]Run `python verify_record.py --evidence {os.path.join(output_dir, 'evidence_manifest.json')}` anytime.[/dim]",
             title="[bold green]✔ PIPELINE EXECUTION SUCCESSFUL[/bold green]",
             border_style="green"
         )
-        console.print(summary_panel)
     else:
-        console.print(Panel("[bold red]VERIFICATION FAILED OR INTEGRITY COMPROMISED[/bold red]", border_style="red"))
+        summary_panel = Panel("[bold red]Re-verification failed.[/bold red]", border_style="red")
+    console.print(summary_panel)
 
 
 def main():

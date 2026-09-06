@@ -6,6 +6,7 @@ and end-to-end blockchain smart contract attestation & tampering detection.
 
 import os
 import hashlib
+import uuid
 import pytest
 from src.face_engine import FaceEngine
 from src.search_engine import WebSocialSearchEngine, SocialPostMatch
@@ -104,7 +105,8 @@ def test_blockchain_smart_contract_full_cycle():
     test_url = "https://reddit.com/r/technology/post123"
     test_platform = "Reddit"
 
-    test_evidence_hash = "0x" + hashlib.sha256(b"sample_evidence_bundle").hexdigest()
+    unique_id = uuid.uuid4().hex
+    test_evidence_hash = "0x" + hashlib.sha256(f"sample_evidence_bundle_{unique_id}".encode()).hexdigest()
 
     # 1. Record on-chain
     receipt = client.record_verification(

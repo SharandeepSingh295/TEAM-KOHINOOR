@@ -124,6 +124,12 @@ cp .env.example .env
 
 ## 📖 How to Run
 
+### Deploy the Smart Contract
+Deploys `FaceVerificationRegistry.sol` to either local EVM or public testnet:
+```bash
+python deploy.py --chain local
+```
+
 ### Run the Full Pipeline
 Ingests a face scan, performs live social discovery, packages evidence, and records it on the blockchain:
 ```bash

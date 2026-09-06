@@ -124,6 +124,16 @@ cp .env.example .env
 
 ## 📖 How to Run
 
+### 🌐 Launch the Interactive Web Application (Browser UI)
+To use the application from a link in your browser:
+```bash
+python web_app.py
+```
+Then open: **`http://localhost:5000`** in your browser!
+* Paste any **image web link (URL)** or upload an image file directly.
+* View biometric landmark detection, reverse search, and smart contract anchoring in real time.
+* Inspect on-chain ledger records and run instant tamper verification.
+
 ### Deploy the Smart Contract
 Deploys `FaceVerificationRegistry.sol` to either local EVM or public testnet:
 ```bash
@@ -137,7 +147,7 @@ python run_pipeline.py --image samples/real_sample_face.jpg --chain local
 ```
 
 **Parameters**:
-* `--image`: Path to input face scan (defaults to `samples/real_sample_face.jpg`).
+* `--image`: Path to input face scan OR an **HTTP/HTTPS image link** (defaults to `samples/real_sample_face.jpg`).
 * `--chain`: Blockchain target (`local` or `testnet`, default: `local`).
 * `--output`: Output directory for crops and receipts (default: `output/`).
 * `--query-hint`: Search terms hint for web discovery.

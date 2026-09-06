@@ -54,11 +54,26 @@ def run_pipeline(
 ):
     print_banner()
 
-    if not os.path.exists(image_path):
+    os.makedirs(output_dir, exist_ok=True)
+
+    # If an HTTP/HTTPS link is provided, download it locally
+    if image_path.startswith(("http://", "https://")):
+        console.print(f"[cyan]Fetching input image from web link:[/cyan] {image_path}")
+        try:
+            import requests
+            resp = requests.get(image_path, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            resp.raise_for_status()
+            downloaded_path = os.path.join(output_dir, "url_input_face.jpg")
+            with open(downloaded_path, "wb") as f:
+                f.write(resp.content)
+            image_path = downloaded_path
+            console.print(f"[green]✔ Image downloaded successfully to {downloaded_path}[/green]")
+        except Exception as e:
+            console.print(f"[bold red]Failed to download image from link:[/bold red] {e}")
+            sys.exit(1)
+    elif not os.path.exists(image_path):
         console.print(f"[bold red]Error:[/bold red] Input image '{image_path}' not found!")
         sys.exit(1)
-
-    os.makedirs(output_dir, exist_ok=True)
 
     # -------------------------------------------------------------
     # STAGE 1: Face Ingestion & Biometric Feature Extraction

@@ -270,17 +270,36 @@ class WebSocialSearchEngine:
             tamper_details="New original master face asset anchored on-chain."
         )
 
-    def search_via_social_graph(self, query_hint: str) -> Optional[SocialPostMatch]:
+    def search_via_social_graph(
+        self,
+        query_hint: str,
+        face_result: Optional[Any] = None
+    ) -> Optional[SocialPostMatch]:
         """
-        Genuine social network lookup:
-        - If query_hint is a URL (e.g. https://github.com/..., https://x.com/..., https://reddit.com/...):
-          Fetches the live public post or profile and its media asset.
-        - If query_hint is a username/handle (e.g. SharandeepSingh295):
-          Queries the public social API to find the live public profile and avatar.
+        Genuine social network lookup with strict biometric cross-verification:
+        - Checks candidate profile avatar.
+        - Verifies that the face in the social avatar actually matches the input face biometrically (>= 75% similarity).
+        - If faces don't match, rejects the candidate to prevent false identity association.
         """
         clean_hint = query_hint.strip()
         if not clean_hint:
             return None
+
+        from src.face_engine import FaceEngine
+        fe = FaceEngine()
+
+        def verify_avatar_biometrics(local_avatar_path: str) -> bool:
+            """Ensures the candidate avatar face matches the input image biometrically."""
+            if not face_result or not getattr(face_result, "perceptual_hash", None):
+                return False
+            try:
+                av_face = fe.process_face_scan(local_avatar_path)
+                if not av_face or not av_face.perceptual_hash:
+                    return False
+                sim = fe.compute_similarity(face_result.perceptual_hash, av_face.perceptual_hash)
+                return sim >= 0.75
+            except Exception:
+                return False
 
         # Case A: User provided a direct social URL
         if clean_hint.startswith("http://") or clean_hint.startswith("https://"):
@@ -296,36 +315,22 @@ class WebSocialSearchEngine:
                             avatar_url = u_data.get("avatar_url")
                             if avatar_url:
                                 local_path, m_hash = self.download_and_hash_media(avatar_url)
-                                return SocialPostMatch(
-                                    url=u_data.get("html_url", clean_hint),
-                                    platform="GitHub",
-                                    title=f"Public Developer Profile: {username}",
-                                    author=username,
-                                    media_url=avatar_url,
-                                    local_media_path=local_path,
-                                    media_hash=m_hash,
-                                    search_provider="Live Social Graph Discovery",
-                                    match_score=0.96,
-                                    timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                                    record_type="PUBLIC_WEB_MATCH",
-                                    is_tampered=False,
-                                    tamper_details=f"Live verified profile discovered on GitHub."
-                                )
-                return SocialPostMatch(
-                    url=clean_hint,
-                    platform=platform,
-                    title=f"Live Verified Post on {platform}",
-                    author="Public Social Author",
-                    media_url=clean_hint,
-                    local_media_path=os.path.join(self.output_dir, "matched_asset_web.jpg"),
-                    media_hash="0x" + hashlib.sha256(clean_hint.encode()).hexdigest(),
-                    search_provider="Direct Social Link Lookup",
-                    match_score=0.95,
-                    timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                    record_type="PUBLIC_WEB_MATCH",
-                    is_tampered=False,
-                    tamper_details=f"Live post verified on {platform}."
-                )
+                                if verify_avatar_biometrics(local_path):
+                                    return SocialPostMatch(
+                                        url=u_data.get("html_url", clean_hint),
+                                        platform="GitHub",
+                                        title=f"Public Developer Profile: {username}",
+                                        author=username,
+                                        media_url=avatar_url,
+                                        local_media_path=local_path,
+                                        media_hash=m_hash,
+                                        search_provider="Live Social Graph Discovery",
+                                        match_score=0.96,
+                                        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                                        record_type="PUBLIC_WEB_MATCH",
+                                        is_tampered=False,
+                                        tamper_details=f"Live verified profile discovered on GitHub."
+                                    )
             except Exception:
                 pass
 
@@ -338,21 +343,22 @@ class WebSocialSearchEngine:
                 avatar_url = u_data.get("avatar_url")
                 if avatar_url:
                     local_path, m_hash = self.download_and_hash_media(avatar_url)
-                    return SocialPostMatch(
-                        url=u_data.get("html_url", f"https://github.com/{clean_user}"),
-                        platform="GitHub",
-                        title=f"Public Social Profile: {clean_user}",
-                        author=clean_user,
-                        media_url=avatar_url,
-                        local_media_path=local_path,
-                        media_hash=m_hash,
-                        search_provider="Live Social Graph Discovery",
-                        match_score=0.95,
-                        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                        record_type="PUBLIC_WEB_MATCH",
-                        is_tampered=False,
-                        tamper_details=f"Live verified profile discovered on GitHub."
-                    )
+                    if verify_avatar_biometrics(local_path):
+                        return SocialPostMatch(
+                            url=u_data.get("html_url", f"https://github.com/{clean_user}"),
+                            platform="GitHub",
+                            title=f"Public Social Profile: {clean_user}",
+                            author=clean_user,
+                            media_url=avatar_url,
+                            local_media_path=local_path,
+                            media_hash=m_hash,
+                            search_provider="Live Social Graph Discovery",
+                            match_score=0.95,
+                            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            record_type="PUBLIC_WEB_MATCH",
+                            is_tampered=False,
+                            tamper_details=f"Live verified profile discovered on GitHub."
+                        )
         except Exception:
             pass
 
@@ -367,7 +373,8 @@ class WebSocialSearchEngine:
         """
         Executes genuine visual search & genesis verification:
         1. Queries Google Lens (if SERPAPI_API_KEY is configured in .env).
-        2. Queries live social graph if search_query_hint or social link is provided.
+        2. Queries live social graph if search_query_hint or social link is provided,
+           with mandatory biometric verification of the candidate avatar.
         3. If no web match: evaluates Genesis Registry to determine if this is an
            altered derivative of an existing registered face, or a new Genesis Original.
         Zero arbitrary accounts or fake author profiles.
@@ -378,9 +385,9 @@ class WebSocialSearchEngine:
             if results:
                 return results[0]
 
-        # 2. Targeted Social Search (if user provided --query-hint or social link)
+        # 2. Targeted Social Search (with mandatory biometric verification)
         if search_query_hint:
-            social_match = self.search_via_social_graph(search_query_hint)
+            social_match = self.search_via_social_graph(search_query_hint, face_result=face_result)
             if social_match:
                 return social_match
 

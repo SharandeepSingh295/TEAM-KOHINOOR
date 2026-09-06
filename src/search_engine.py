@@ -15,6 +15,9 @@ import requests
 from dataclasses import dataclass
 from typing import List, Optional, Tuple, Any
 from urllib.parse import urlparse
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @dataclass
@@ -105,30 +108,40 @@ class WebSocialSearchEngine:
                 platform = self.identify_platform(link)
                 thumbnail = item.get("thumbnail") or item.get("original")
 
-                if thumbnail and link:
+                if link:
+                    local_path = image_path
                     try:
-                        local_path, m_hash = self.download_and_hash_media(thumbnail)
-                        matches.append(
-                            SocialPostMatch(
-                                url=link,
-                                platform=platform,
-                                title=item.get("title", "Discovered Web Match"),
-                                author="Public Web Source",
-                                media_url=thumbnail,
-                                local_media_path=local_path,
-                                media_hash=m_hash,
-                                search_provider="Google Lens Visual Search",
-                                match_score=0.95,
-                                timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                                record_type="PUBLIC_WEB_MATCH",
-                                is_tampered=False,
-                                tamper_details=f"Live visual match discovered on {platform}."
-                            )
-                        )
-                        if len(matches) >= 1:
-                            break
+                        with open(image_path, "rb") as img_f:
+                            m_hash = "0x" + hashlib.sha256(img_f.read()).hexdigest()
                     except Exception:
-                        continue
+                        m_hash = "0x" + hashlib.sha256(link.encode()).hexdigest()
+
+                    if thumbnail:
+                        try:
+                            dl_path, dl_hash = self.download_and_hash_media(thumbnail)
+                            local_path, m_hash = dl_path, dl_hash
+                        except Exception:
+                            pass
+
+                    matches.append(
+                        SocialPostMatch(
+                            url=link,
+                            platform=platform,
+                            title=item.get("title", "Discovered Web Match"),
+                            author="Public Web Source",
+                            media_url=thumbnail or link,
+                            local_media_path=local_path,
+                            media_hash=m_hash,
+                            search_provider="Google Lens Visual Search",
+                            match_score=0.95,
+                            timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                            record_type="PUBLIC_WEB_MATCH",
+                            is_tampered=False,
+                            tamper_details=f"Live visual match discovered on {platform}."
+                        )
+                    )
+                    if len(matches) >= 1:
+                        break
 
             return matches
         except Exception:

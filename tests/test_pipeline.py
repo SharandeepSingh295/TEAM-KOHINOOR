@@ -191,3 +191,148 @@ def test_genesis_origin_and_altered_derivative_detection(sample_image, tmp_path)
     assert alt_match.is_tampered is True
     assert alt_match.genesis_reference_hash == receipt["evidence_hash"]
     assert "modified" in alt_match.tamper_details.lower()
+
+
+def test_face_crop_and_manifest_tamper_detection(sample_image, tmp_path):
+    import json
+    from verify_record import verify_evidence, verify_hash_direct
+
+    face_engine = FaceEngine()
+    face_result = face_engine.process_face_scan(sample_image, output_crop_dir=str(tmp_path))
+
+    dummy_media_path = str(tmp_path / "dummy_media.jpg")
+    with open(dummy_media_path, "wb") as f:
+        f.write(b"dummy_media")
+
+    social_match = SocialPostMatch(
+        url="https://x.com/sample/status/111",
+        platform="Twitter/X",
+        title="Test post",
+        author="alice",
+        media_url=dummy_media_path,
+        local_media_path=dummy_media_path,
+        media_hash="0x" + hashlib.sha256(b"dummy_media").hexdigest(),
+        search_provider="Unit Test",
+        match_score=1.0,
+        timestamp="2026-09-05T00:00:00Z"
+    )
+
+    packager = EvidencePackager(output_dir=str(tmp_path))
+    tmp_ledger = str(tmp_path / "local_ledger.json")
+    client = BlockchainClient(mode="local", ledger_file=tmp_ledger)
+
+    manifest = packager.create_package(
+        face_result=face_result,
+        social_match=social_match,
+        verifier_address=client.wallet_address,
+        custom_timestamp=1757000000
+    )
+
+    receipt = client.record_verification(
+        evidence_hash=manifest["evidence_hash"],
+        face_hash=face_result.face_hash,
+        media_hash=social_match.media_hash,
+        source_url=social_match.url,
+        platform=social_match.platform
+    )
+    manifest["blockchain_status"] = receipt
+    manifest_file = packager.save_updated_manifest(manifest, filepath=str(tmp_path / "manifest.json"))
+
+    # 1. Authentic state passes verification
+    assert verify_evidence(manifest_path=manifest_file, chain_mode="local", ledger_file=tmp_ledger) is True
+
+    # 2. Direct on-chain hash verification passes
+    assert verify_hash_direct(evidence_hash=manifest["evidence_hash"], chain_mode="local", ledger_file=tmp_ledger) is True
+
+    # 3. Tampering with the face crop on disk MUST be detected
+    tampered_crop = str(tmp_path / "tampered_crop.jpg")
+    with open(tampered_crop, "wb") as f:
+        f.write(b"MALICIOUS_TAMPERED_FACE_CROP_BYTES")
+
+    with open(manifest_file, "r") as f:
+        t_data = json.load(f)
+    t_data["face_data"]["crop_path"] = tampered_crop
+    tampered_face_manifest = str(tmp_path / "tampered_face_manifest.json")
+    with open(tampered_face_manifest, "w") as f:
+        json.dump(t_data, f)
+
+    assert verify_evidence(manifest_path=tampered_face_manifest, chain_mode="local", ledger_file=tmp_ledger) is False
+
+    # 4. Tampering with manifest JSON metadata fields MUST be detected via canonical root check
+    with open(manifest_file, "r") as f:
+        m_data = json.load(f)
+    m_data["social_media_data"]["post_url"] = "https://forged-impersonator.com/status/999"
+    tampered_root_manifest = str(tmp_path / "tampered_root_manifest.json")
+    with open(tampered_root_manifest, "w") as f:
+        json.dump(m_data, f)
+
+    assert verify_evidence(manifest_path=tampered_root_manifest, chain_mode="local", ledger_file=tmp_ledger) is False
+
+
+def test_multi_generation_derivative_traces_to_root_genesis(sample_image, tmp_path):
+    import cv2
+    face_engine = FaceEngine()
+    orig_face = face_engine.process_face_scan(sample_image, output_crop_dir=str(tmp_path))
+
+    tmp_ledger = str(tmp_path / "local_ledger.json")
+    search_engine = WebSocialSearchEngine(serpapi_key="", output_dir=str(tmp_path), ledger_file=tmp_ledger)
+    orig_match = search_engine.execute_search(image_path=sample_image, face_result=orig_face)
+
+    packager = EvidencePackager(output_dir=str(tmp_path))
+    manifest1 = packager.create_package(face_result=orig_face, social_match=orig_match)
+
+    client = BlockchainClient(mode="local", ledger_file=tmp_ledger)
+    extra_meta1 = {
+        "perceptual_hash": orig_face.perceptual_hash,
+        "face_crop_path": orig_face.crop_path,
+        "record_type": "GENESIS_ORIGINAL",
+        "is_tampered": False
+    }
+    receipt1 = client.record_verification(
+        evidence_hash=manifest1["evidence_hash"],
+        face_hash=orig_face.face_hash,
+        media_hash=orig_match.media_hash,
+        source_url=orig_match.url,
+        platform=orig_match.platform,
+        extra_metadata=extra_meta1
+    )
+    genesis_root_hash = receipt1["evidence_hash"]
+
+    # Derivative generation 1
+    img = cv2.imread(sample_image)
+    alt1 = cv2.convertScaleAbs(img, alpha=1.02, beta=5)
+    alt1_path = str(tmp_path / "alt1.jpg")
+    cv2.imwrite(alt1_path, alt1)
+    alt1_face = face_engine.process_face_scan(alt1_path, output_crop_dir=str(tmp_path))
+    alt1_match = search_engine.execute_search(image_path=alt1_path, face_result=alt1_face)
+    assert alt1_match.genesis_reference_hash == genesis_root_hash
+
+    # Anchor derivative generation 1 to ledger
+    manifest2 = packager.create_package(face_result=alt1_face, social_match=alt1_match)
+    extra_meta2 = {
+        "perceptual_hash": alt1_face.perceptual_hash,
+        "face_crop_path": alt1_face.crop_path,
+        "record_type": "ALTERED_DERIVATIVE",
+        "genesis_reference_hash": genesis_root_hash,
+        "is_tampered": True
+    }
+    client.record_verification(
+        evidence_hash=manifest2["evidence_hash"],
+        face_hash=alt1_face.face_hash,
+        media_hash=alt1_match.media_hash,
+        source_url=alt1_match.url,
+        platform=alt1_match.platform,
+        extra_metadata=extra_meta2
+    )
+
+    # Derivative generation 2 (further edit of alt1)
+    alt2 = cv2.convertScaleAbs(alt1, alpha=1.03, beta=8)
+    alt2_path = str(tmp_path / "alt2.jpg")
+    cv2.imwrite(alt2_path, alt2)
+    alt2_face = face_engine.process_face_scan(alt2_path, output_crop_dir=str(tmp_path))
+    alt2_match = search_engine.execute_search(image_path=alt2_path, face_result=alt2_face)
+
+    # Generation 2 MUST trace back to the original Genesis Root, NOT the intermediate derivative
+    assert alt2_match.record_type == "ALTERED_DERIVATIVE"
+    assert alt2_match.genesis_reference_hash == genesis_root_hash
+

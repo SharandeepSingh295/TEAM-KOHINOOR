@@ -157,24 +157,28 @@ python run_pipeline.py --image samples/real_sample_face.jpg --chain local
 * `--output`: Output directory for crops and receipts (default: `output/`).
 * `--query-hint`: Search terms hint for web discovery.
 
-### Re-Verify Data Against the Blockchain
-Run the standalone verification utility against an existing `evidence_manifest.json`:
+#### Re-Verify Data Against the Blockchain
+Run the standalone verification utility against an existing `evidence_manifest.json` or directly by on-chain evidence hash:
 ```bash
+# Verify using full manifest (validates face crop bytes, media asset, and manifest root)
 python verify_record.py --evidence output/evidence_manifest.json
+
+# Or query and verify directly by on-chain evidence hash
+python verify_record.py --hash <EVIDENCE_ROOT_HASH>
 ```
 Output:
 ```
-            Cryptographic Comparison: On-Chain Record vs Live Data             
-┌──────────────────┬───────────────────────┬───────────────────────┬──────────┐
-│ Attribute        │ On-Chain Ledger       │ Current Live Asset    │  Status  │
-├──────────────────┼───────────────────────┼───────────────────────┼──────────┤
-│ Face Hash        │ 0x26f6d7315d63...     │ 0x26f6d7315d63...     │  MATCH   │
-│ Media Asset Hash │ 0x09188192df06...     │ 0x09188192df06...     │  MATCH   │
-│ Post Source URL  │ genesis://master-ass… │ genesis://master-ass… │  MATCH   │
-│ Platform         │ Genesis Origin        │ Genesis Origin        │  MATCH   │
-│                  │ Registry              │ Registry              │          │
-│ Ledger Timestamp │ 1788694695            │ 1788694563            │ RECORDED │
-└──────────────────┴───────────────────────┴───────────────────────┴──────────┘
+             Cryptographic Comparison: On-Chain Record vs Live Data             
+┌──────────────────────────┬───────────────────────┬───────────────────────┬──────────┐
+│ Attribute                │ On-Chain Ledger       │ Current Live Asset    │  Status  │
+├──────────────────────────┼───────────────────────┼───────────────────────┼──────────┤
+│ Face Crop Biometric Hash │ 0x26f6d7315d63...     │ 0x26f6d7315d63...     │  MATCH   │
+│ Media Asset Hash         │ 0x09188192df06...     │ 0x09188192df06...     │  MATCH   │
+│ Post Source URL          │ genesis://master-ass… │ genesis://master-ass… │  MATCH   │
+│ Platform                 │ Genesis Origin        │ Genesis Origin        │  MATCH   │
+│ Canonical Evidence Root  │ 0x36529695f5ec...     │ 0x36529695f5ec...     │  MATCH   │
+│ Ledger Timestamp         │ 1788694695            │ 1788694563            │ RECORDED │
+└──────────────────────────┴───────────────────────┴───────────────────────┴──────────┘
 ┌──────────────────────────── VERIFIED AUTHENTIC ─────────────────────────────┐
 │ ✔ RE-VERIFICATION PASSED                                                    │
 │ No data modification or tampering has occurred since registration.          │
@@ -182,7 +186,7 @@ Output:
 ```
 
 ### Run the Tamper Detection Demonstration
-Demonstrate the system rejecting altered/falsified data:
+Demonstrate the system rejecting altered media assets or tampered face crop files:
 ```bash
 python demo_tamper_detection.py
 ```
@@ -190,10 +194,12 @@ Output:
 ```
 ┌─────────────────────────── TAMPER-EVIDENCE ALERT ───────────────────────────┐
 │ ✖ TAMPER DETECTED                                                           │
-│ WARNING: The live media asset or post metadata does NOT match the immutable │
-│ blockchain fingerprint. The data has been altered, forged, or replaced!     │
+│ WARNING: The live assets or manifest metadata do NOT match the immutable     │
+│ blockchain fingerprint.                                                      │
+│ • Media asset image content has been modified!                               │
+│ • Biometric face crop file on disk has been altered or replaced!             │
 └─────────────────────────────────────────────────────────────────────────────┘
-[SUCCESS]: The blockchain smart contract successfully DETECTED the tamper attempt and rejected the data!
+[SUCCESS]: The verification engine successfully DETECTED the tamper attempt and rejected the data!
 ```
 
 ---

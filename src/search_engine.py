@@ -280,6 +280,15 @@ class WebSocialSearchEngine:
             orig_media_hash = best_genesis.get("media_hash", "")
             orig_face_hash = best_genesis.get("face_hash", "")
 
+            # If the matched record is itself an altered derivative, trace back to the root Genesis master proof
+            if best_genesis.get("genesis_reference_hash"):
+                root_ev = best_genesis["genesis_reference_hash"]
+                orig_ev_hash = root_ev
+                if root_ev in ledger:
+                    root_rec = ledger[root_ev]
+                    orig_media_hash = root_rec.get("media_hash", orig_media_hash)
+                    orig_face_hash = root_rec.get("face_hash", orig_face_hash)
+
             # Check if cryptographic bytes differ (Altered / Tampered derivative)
             is_altered = (current_face_hash.lower() != orig_face_hash.lower()) or (media_hash.lower() != orig_media_hash.lower())
 
@@ -352,6 +361,10 @@ class WebSocialSearchEngine:
         clean_hint = query_hint.strip()
         if not clean_hint:
             return None
+
+        # Normalize schema-less URLs (e.g. github.com/user or www.github.com/user)
+        if clean_hint.startswith("github.com/") or clean_hint.startswith("www.github.com/"):
+            clean_hint = f"https://{clean_hint}"
 
         from src.face_engine import FaceEngine
         fe = FaceEngine()

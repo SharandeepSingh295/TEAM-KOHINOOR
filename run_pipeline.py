@@ -61,9 +61,11 @@ def run_pipeline(
         console.print(f"[cyan]Fetching input image from web link:[/cyan] {image_path}")
         try:
             import requests
+            import hashlib
             resp = requests.get(image_path, timeout=20, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
             resp.raise_for_status()
-            downloaded_path = os.path.join(output_dir, "url_input_face.jpg")
+            download_hash = hashlib.sha256(resp.content).hexdigest()[:10]
+            downloaded_path = os.path.join(output_dir, f"url_input_face_{download_hash}.jpg")
             with open(downloaded_path, "wb") as f:
                 f.write(resp.content)
             image_path = downloaded_path

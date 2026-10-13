@@ -202,6 +202,22 @@ Output:
 [SUCCESS]: The verification engine successfully DETECTED the tamper attempt and rejected the data!
 ```
 
+### Inspect On-Chain Ledger & Analytics
+Explore all recorded proofs, Genesis masters, and altered derivatives with rich tabular output or executive analytics:
+```bash
+# View all ledger records
+python show_ledger.py
+
+# View executive analytics dashboard (total proofs, gas, unique verifiers)
+python show_ledger.py --summary
+
+# Filter ledger by classification (genesis, altered, public)
+python show_ledger.py --filter genesis
+
+# Inspect a specific record by hash in full detail
+python show_ledger.py --hash <EVIDENCE_ROOT_HASH>
+```
+
 ---
 
 ## 🧪 Automated Test Suite

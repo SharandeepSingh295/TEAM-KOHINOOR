@@ -336,3 +336,19 @@ def test_multi_generation_derivative_traces_to_root_genesis(sample_image, tmp_pa
     assert alt2_match.record_type == "ALTERED_DERIVATIVE"
     assert alt2_match.genesis_reference_hash == genesis_root_hash
 
+
+def test_ledger_analytics_summary():
+    from show_ledger import get_ledger_stats
+    dummy_ledger = {
+        "0x1": {"record_type": "GENESIS_ORIGINAL", "is_tampered": False, "gas_used": 100000, "verifier_address": "0xA"},
+        "0x2": {"record_type": "ALTERED_DERIVATIVE", "is_tampered": True, "gas_used": 150000, "verifier_address": "0xA"},
+        "0x3": {"record_type": "PUBLIC_WEB_MATCH", "is_tampered": False, "gas_used": 200000, "verifier_address": "0xB"},
+    }
+    stats = get_ledger_stats(dummy_ledger)
+    assert stats["total"] == 3
+    assert stats["genesis_count"] == 1
+    assert stats["altered_count"] == 1
+    assert stats["public_count"] == 1
+    assert stats["total_gas"] == 450000
+    assert stats["unique_verifiers"] == 2
+

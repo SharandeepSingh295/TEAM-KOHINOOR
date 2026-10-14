@@ -28,6 +28,8 @@ if sys.platform == "win32":
 
 from src.blockchain_client import BlockchainClient
 from src.evidence_packager import EvidencePackager
+from src.forensic_engine import ForensicEngine
+from src.certificate_generator import CertificateGenerator
 
 console = Console()
 
@@ -37,7 +39,9 @@ def verify_evidence(
     chain_mode: str = None,
     rpc_url: str = None,
     contract_address: str = None,
-    ledger_file: str = None
+    ledger_file: str = None,
+    run_forensics: bool = False,
+    issue_certificate: bool = False
 ):
     if not os.path.exists(manifest_path):
         console.print(f"[bold red]Error:[/bold red] Manifest file '{manifest_path}' not found!")
@@ -167,6 +171,17 @@ def verify_evidence(
 
     console.print(table)
 
+    forensic_report = None
+    if run_forensics and local_crop_path and os.path.exists(local_crop_path):
+        console.print("\n[bold cyan]🔬 Executing Forensic Tamper & ELA Audit...[/bold cyan]")
+        f_engine = ForensicEngine(output_dir=os.path.join(os.path.dirname(manifest_path) or "output", "forensics"))
+        forensic_report = f_engine.analyze_standalone_image(local_crop_path, identifier=evidence_hash[:10])
+        console.print(f"  [green]✔[/green] Forensic Verdict: [bold]{forensic_report.verdict}[/bold] | Integrity Score: [bold]{forensic_report.integrity_score}%[/bold]")
+        if forensic_report.heatmap_path:
+            console.print(f"  [green]✔[/green] Tamper Heatmap: [dim]{forensic_report.heatmap_path}[/dim]")
+        if forensic_report.composite_path:
+            console.print(f"  [green]✔[/green] Audit Card: [dim]{forensic_report.composite_path}[/dim]")
+
     if is_valid:
         console.print(Panel(
             "[bold green]✔ RE-VERIFICATION PASSED[/bold green]\n\n"
@@ -175,6 +190,33 @@ def verify_evidence(
             title="[bold green]VERIFIED AUTHENTIC[/bold green]",
             border_style="green"
         ))
+
+        if issue_certificate:
+            console.print("\n[bold cyan]📜 Issuing Cryptographic Biometric Certificate...[/bold cyan]")
+            cert_dir = os.path.join(os.path.dirname(manifest_path) or "output", "certificates")
+            c_gen = CertificateGenerator(output_dir=cert_dir)
+            rec_data = {
+                "evidence_hash": evidence_hash,
+                "face_hash": recorded_face_hash,
+                "media_hash": recorded_media_hash,
+                "platform": manifest.get("social_media_data", {}).get("platform"),
+                "source_url": manifest.get("social_media_data", {}).get("post_url"),
+                "verifier": manifest.get("verifier_address"),
+                "block_number": b_status.get("block_number", 1),
+                "transaction_hash": b_status.get("transaction_hash", "0x" + "0" * 64),
+                "contract_address": target_contract or "0xF2E246BB7678C62c6AbA282D7B70204689c8395b",
+                "timestamp": manifest.get("created_at_unix"),
+                "face_crop_path": local_crop_path,
+                "record_type": manifest.get("social_media_data", {}).get("search_provider", "GENESIS_ORIGINAL"),
+                "is_tampered": False
+            }
+            cert_path = c_gen.generate_certificate_html(
+                rec_data,
+                forensic_data=forensic_report.to_dict() if forensic_report else None,
+                save_filename=f"certificate_{evidence_hash[:10]}.html"
+            )
+            console.print(f"  [green]✔[/green] Certificate Issued: [bold green]{cert_path}[/bold green]")
+
         return True
     else:
         tamper_reasons = []
@@ -205,7 +247,8 @@ def verify_hash_direct(
     chain_mode: str = None,
     rpc_url: str = None,
     contract_address: str = None,
-    ledger_file: str = None
+    ledger_file: str = None,
+    issue_certificate: bool = False
 ) -> bool:
     """Queries on-chain registry directly by canonical evidence root hash."""
     selected_chain = chain_mode or "local"
@@ -259,6 +302,30 @@ def verify_hash_direct(
         title="[bold green]VERIFIED ON-CHAIN[/bold green]",
         border_style="green"
     ))
+
+    if issue_certificate:
+        local_records = blockchain._load_local_ledger()
+        local_entry = local_records.get(evidence_hash.lower(), {})
+        cert_dir = "output/certificates"
+        c_gen = CertificateGenerator(output_dir=cert_dir)
+        rec_data = {
+            "evidence_hash": evidence_hash,
+            "face_hash": on_chain.get("face_hash"),
+            "media_hash": on_chain.get("media_hash"),
+            "platform": on_chain.get("platform"),
+            "source_url": on_chain.get("source_url"),
+            "verifier": on_chain.get("verifier"),
+            "block_number": local_entry.get("block_number", 1),
+            "transaction_hash": local_entry.get("transaction_hash", "0x" + "0" * 64),
+            "contract_address": blockchain.contract_address,
+            "timestamp": on_chain.get("timestamp"),
+            "face_crop_path": local_entry.get("face_crop_path"),
+            "record_type": local_entry.get("record_type", "GENESIS_ORIGINAL"),
+            "is_tampered": local_entry.get("is_tampered", False)
+        }
+        cert_path = c_gen.generate_certificate_html(rec_data, save_filename=f"certificate_{evidence_hash[:10]}.html")
+        console.print(f"\n[green]✔ Cryptographic Certificate Issued: [bold]{cert_path}[/bold][/green]")
+
     return True
 
 
@@ -297,6 +364,16 @@ def main():
         default=None,
         help="Contract address (if verifying against specific deployed instance)"
     )
+    parser.add_argument(
+        "--forensics",
+        action="store_true",
+        help="Run deep Error Level Analysis (ELA) and visual tamper heatmap inspection"
+    )
+    parser.add_argument(
+        "--certificate",
+        action="store_true",
+        help="Generate a self-contained cryptographic HTML certificate with embedded QR stamp"
+    )
 
     args = parser.parse_args()
 
@@ -305,14 +382,17 @@ def main():
             evidence_hash=args.hash,
             chain_mode=args.chain,
             rpc_url=args.rpc,
-            contract_address=args.contract
+            contract_address=args.contract,
+            issue_certificate=args.certificate
         )
     else:
         success = verify_evidence(
             manifest_path=args.evidence,
             chain_mode=args.chain,
             rpc_url=args.rpc,
-            contract_address=args.contract
+            contract_address=args.contract,
+            run_forensics=args.forensics,
+            issue_certificate=args.certificate
         )
     sys.exit(0 if success else 1)
 

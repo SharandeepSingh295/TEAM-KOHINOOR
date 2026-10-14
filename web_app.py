@@ -35,6 +35,8 @@ from src.face_engine import FaceEngine
 from src.search_engine import WebSocialSearchEngine
 from src.evidence_packager import EvidencePackager
 from src.blockchain_client import BlockchainClient, LOCAL_LEDGER_FILE
+from src.forensic_engine import ForensicEngine
+from src.certificate_generator import CertificateGenerator
 
 OUTPUT_DIR = os.path.abspath("output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -283,6 +285,30 @@ HTML_PAGE = """<!DOCTYPE html>
               </div>
             </div>
           </div>
+
+          <!-- Forensic & Certificate Quick Actions -->
+          <div class="glass-card p-4 rounded-xl flex flex-wrap items-center justify-between gap-3 border border-amber-500/20 bg-amber-950/10">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-award"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-white flex items-center gap-2">
+                  Cryptographic Certificate of Biometric Attestation
+                  <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30">VERIFIED</span>
+                </div>
+                <div class="text-[11px] text-gray-400">Tamper-evident certificate with SVG hologram & scannable QR proof</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <a id="res-btn-cert" href="#" target="_blank" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-bold text-xs rounded-lg shadow-lg flex items-center gap-2 transition">
+                <i class="fa-solid fa-file-contract"></i> View Certificate
+              </a>
+              <button type="button" id="res-btn-forensics" onclick="openForensicsModal()" class="px-3.5 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 font-semibold text-xs rounded-lg transition flex items-center gap-1.5">
+                <i class="fa-solid fa-microscope"></i> Tamper Heatmap
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -481,12 +507,85 @@ HTML_PAGE = """<!DOCTYPE html>
         document.getElementById('res-gas-used').innerText = Number(data.gas_used).toLocaleString() + ' gas';
         document.getElementById('res-tx-hash').innerText = data.transaction_hash;
 
+        // Wire Certificate & Forensics
+        activeEvidenceHash = data.evidence_hash;
+        const certBtn = document.getElementById('res-btn-cert');
+        if (certBtn) {
+          certBtn.href = '/api/certificate?hash=' + encodeURIComponent(data.evidence_hash);
+        }
+
         document.getElementById('pipeline-result').classList.remove('hidden');
         loadStatus();
       } catch (err) {
         document.getElementById('pipeline-loading').classList.add('hidden');
         document.getElementById('pipeline-idle').classList.remove('hidden');
         alert('Network / Server Error: ' + err.message);
+      }
+    }
+
+    let activeEvidenceHash = '';
+
+    function closeForensicsModal() {
+      document.getElementById('forensics-modal').classList.add('hidden');
+    }
+
+    function openForensicsModal() {
+      if (!activeEvidenceHash) {
+        alert('No active evidence hash available.');
+        return;
+      }
+      inspectForensics(activeEvidenceHash);
+    }
+
+    async function inspectForensics(hash) {
+      const modal = document.getElementById('forensics-modal');
+      const body = document.getElementById('forensics-modal-body');
+      modal.classList.remove('hidden');
+      body.innerHTML = `
+        <div class="py-12 flex flex-col items-center justify-center text-center">
+          <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+          <p class="text-xs text-gray-400">Computing Error Level Analysis (ELA) and generating tamper heatmaps...</p>
+        </div>
+      `;
+      try {
+        const resp = await fetch('/api/forensics?hash=' + encodeURIComponent(hash));
+        const data = await resp.json();
+        if (!data.success) {
+          body.innerHTML = `<div class="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-400 text-xs">${data.error || 'Forensic analysis failed.'}</div>`;
+          return;
+        }
+        body.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-gray-900 p-3 rounded-xl border border-gray-800">
+              <div class="text-[10px] text-gray-500 uppercase">Verdict</div>
+              <div class="font-bold text-sm ${data.is_tampered ? 'text-red-400' : 'text-green-400'}">${data.verdict}</div>
+            </div>
+            <div class="bg-gray-900 p-3 rounded-xl border border-gray-800">
+              <div class="text-[10px] text-gray-500 uppercase">Integrity Score</div>
+              <div class="font-bold text-sm text-cyan-400">${data.integrity_score}%</div>
+            </div>
+            <div class="bg-gray-900 p-3 rounded-xl border border-gray-800">
+              <div class="text-[10px] text-gray-500 uppercase">Tamper Probability</div>
+              <div class="font-bold text-sm ${data.tamper_probability > 0.3 ? 'text-red-400' : 'text-gray-300'}">${(data.tamper_probability * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+          <div>
+            <h5 class="text-xs font-bold text-gray-300 mb-2 uppercase tracking-wider">Multi-Panel Visual Audit Card</h5>
+            ${data.composite_url ? `<img src="${data.composite_url}" class="w-full rounded-xl border border-gray-800 shadow-xl" alt="Forensic Composite">` : '<p class="text-xs text-gray-500">Composite card not available</p>'}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <h5 class="text-xs font-bold text-gray-300 mb-1">Localized Tamper Heatmap</h5>
+              ${data.heatmap_url ? `<img src="${data.heatmap_url}" class="w-full rounded-xl border border-gray-800 object-cover" alt="Heatmap">` : ''}
+            </div>
+            <div>
+              <h5 class="text-xs font-bold text-gray-300 mb-1">ELA Compression Residuals</h5>
+              ${data.ela_url ? `<img src="${data.ela_url}" class="w-full rounded-xl border border-gray-800 object-cover" alt="ELA">` : ''}
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        body.innerHTML = `<div class="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-400 text-xs">${err.message}</div>`;
       }
     }
 
@@ -513,6 +612,7 @@ HTML_PAGE = """<!DOCTYPE html>
           return;
         }
 
+        activeEvidenceHash = hash;
         content.innerHTML = `
           <div class="p-4 rounded-xl bg-green-950/40 border border-green-500/30 text-green-400 mb-4">
             <h4 class="font-bold flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> On-Chain Record Verified</h4>
@@ -531,6 +631,14 @@ HTML_PAGE = """<!DOCTYPE html>
               <div class="text-gray-500 text-[10px]">Source URL</div>
               <a href="${res.record.source_url}" target="_blank" class="text-blue-400 underline truncate block">${res.record.source_url}</a>
             </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-gray-800 flex gap-2">
+            <a href="/api/certificate?hash=${encodeURIComponent(hash)}" target="_blank" class="px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:bg-amber-500/30 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-award"></i> View Certificate
+            </a>
+            <button onclick="inspectForensics('${hash}')" class="px-3.5 py-1.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-bold hover:bg-indigo-500/30 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-microscope"></i> Tamper Heatmap
+            </button>
           </div>
         `;
       } catch (err) {
@@ -556,6 +664,9 @@ HTML_PAGE = """<!DOCTYPE html>
             <td class="py-3 px-4">#${item.block_number}</td>
             <td class="py-3 px-4 text-gray-500">${new Date(item.timestamp * 1000).toLocaleTimeString()}</td>
             <td class="py-3 px-4 text-right font-sans">
+              <a href="/api/certificate?hash=${item.evidence_hash}" target="_blank" class="text-amber-400 hover:text-amber-300 text-xs font-semibold bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 mr-1.5 inline-block">
+                Cert
+              </a>
               <button onclick="inspectRecord('${item.evidence_hash}')" class="text-blue-400 hover:text-blue-300 text-xs font-semibold bg-blue-500/10 px-2.5 py-1 rounded-lg border border-blue-500/20">
                 Verify
               </button>
@@ -592,6 +703,19 @@ HTML_PAGE = """<!DOCTYPE html>
       loadLedger();
     };
   </script>
+
+  <!-- Forensics Modal -->
+  <div id="forensics-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-gray-950 border border-gray-800 rounded-2xl max-w-4xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <h3 class="font-bold text-lg text-white flex items-center gap-2">
+          <i class="fa-solid fa-microscope text-indigo-400"></i> Biometric Forensic & Tamper Heatmap Lab
+        </h3>
+        <button onclick="closeForensicsModal()" class="text-gray-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="forensics-modal-body" class="space-y-4"></div>
+    </div>
+  </div>
 </body>
 </html>
 """
@@ -744,10 +868,72 @@ async def handle_run(request):
             "record_type": social_match.record_type,
             "is_tampered": social_match.is_tampered,
             "genesis_reference_hash": social_match.genesis_reference_hash,
-            "tamper_details": social_match.tamper_details
+            "tamper_details": social_match.tamper_details,
+            "certificate_url": f"/api/certificate?hash={manifest['evidence_hash']}"
         })
     except Exception as err:
         return web.json_response({"success": False, "error": str(err)})
+
+
+async def handle_certificate(request):
+    ev_hash = request.query.get("hash", "").strip()
+    if not ev_hash or not os.path.exists(LOCAL_LEDGER_FILE):
+        return web.Response(text="<h1>Record not found</h1>", content_type="text/html", status=404)
+
+    with open(LOCAL_LEDGER_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    record = data.get(ev_hash.lower()) or data.get(ev_hash)
+    if not record:
+        return web.Response(text="<h1>Record not found in ledger</h1>", content_type="text/html", status=404)
+
+    c_gen = CertificateGenerator(output_dir=os.path.join(OUTPUT_DIR, "certificates"))
+    html = c_gen.generate_certificate_html(record)
+    headers = {"Content-Type": "text/html"}
+    if request.query.get("download") == "1":
+        headers["Content-Disposition"] = f'attachment; filename="certificate_{ev_hash[:10]}.html"'
+    return web.Response(text=html, headers=headers)
+
+
+async def handle_forensics(request):
+    ev_hash = request.query.get("hash", "").strip()
+    if not ev_hash or not os.path.exists(LOCAL_LEDGER_FILE):
+        return web.json_response({"success": False, "error": "Record not found"})
+
+    with open(LOCAL_LEDGER_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    record = data.get(ev_hash.lower()) or data.get(ev_hash)
+    if not record:
+        return web.json_response({"success": False, "error": "Record not found in ledger"})
+
+    face_crop = record.get("face_crop_path")
+    if not face_crop or not os.path.exists(face_crop):
+        return web.json_response({"success": False, "error": "Biometric face crop file not found"})
+
+    forensics_dir = os.path.join(OUTPUT_DIR, "forensics")
+    os.makedirs(forensics_dir, exist_ok=True)
+    f_engine = ForensicEngine(output_dir=forensics_dir)
+    report = f_engine.analyze_standalone_image(face_crop, identifier=ev_hash[:10])
+
+    return web.json_response({
+        "success": True,
+        "evidence_hash": ev_hash,
+        "verdict": report.verdict,
+        "integrity_score": report.integrity_score,
+        "tamper_probability": report.tamper_probability,
+        "is_tampered": report.is_tampered,
+        "metrics": {
+            "altered_pixel_ratio": report.altered_pixel_ratio,
+            "mean_squared_error": report.mean_squared_error,
+            "peak_signal_to_noise": report.peak_signal_to_noise,
+            "ela_metrics": report.ela_metrics,
+            "noise_variance": report.noise_variance
+        },
+        "heatmap_url": f"/output/forensics/{os.path.basename(report.heatmap_path)}" if report.heatmap_path else None,
+        "composite_url": f"/output/forensics/{os.path.basename(report.composite_path)}" if report.composite_path else None,
+        "ela_url": f"/output/forensics/{os.path.basename(report.ela_path)}" if report.ela_path else None
+    })
 
 
 def create_app():
@@ -756,6 +942,8 @@ def create_app():
     app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/records", handle_records)
     app.router.add_get("/api/verify", handle_verify)
+    app.router.add_get("/api/certificate", handle_certificate)
+    app.router.add_get("/api/forensics", handle_forensics)
     app.router.add_post("/api/run", handle_run)
     app.router.add_static("/output", OUTPUT_DIR)
     app.router.add_static("/samples", os.path.abspath("samples"))

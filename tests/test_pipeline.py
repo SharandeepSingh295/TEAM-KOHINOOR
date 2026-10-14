@@ -352,3 +352,90 @@ def test_ledger_analytics_summary():
     assert stats["total_gas"] == 450000
     assert stats["unique_verifiers"] == 2
 
+
+def test_forensic_ela_and_noise_analysis(sample_image, tmp_path):
+    from src.forensic_engine import ForensicEngine
+    import cv2
+    import numpy as np
+
+    engine = ForensicEngine(output_dir=str(tmp_path))
+    img = cv2.imread(sample_image)
+    assert img is not None
+
+    # Standalone analysis
+    report = engine.analyze_standalone_image(img, identifier="unit_test_scan")
+    assert report.integrity_score > 0
+    assert report.noise_variance > 0
+    assert "mean_error" in report.ela_metrics
+    assert os.path.exists(report.heatmap_path)
+    assert os.path.exists(report.composite_path)
+    assert os.path.exists(report.ela_path)
+
+
+def test_forensic_differential_tamper_heatmap(sample_image, tmp_path):
+    from src.forensic_engine import ForensicEngine
+    import cv2
+
+    engine = ForensicEngine(output_dir=str(tmp_path))
+    orig = cv2.imread(sample_image)
+
+    # Create synthetic localized alteration (e.g. face patch edit)
+    alt = orig.copy()
+    cv2.circle(alt, (alt.shape[1] // 2, alt.shape[0] // 2), 40, (0, 0, 255), -1)
+
+    report = engine.compare_images(orig, alt, identifier="unit_test_tamper")
+    assert report.is_tampered is True
+    assert report.altered_pixel_ratio > 0
+    assert report.mean_squared_error > 0
+    assert report.verdict in ("SUSPICIOUS_ARTIFACTS", "MANIPULATION_DETECTED")
+    assert len(report.altered_bounding_boxes) > 0
+    assert os.path.exists(report.heatmap_path)
+    assert os.path.exists(report.composite_path)
+
+
+def test_cryptographic_certificate_generation_and_qr_roundtrip(sample_image, tmp_path):
+    import re
+    import base64
+    import numpy as np
+    import cv2
+    from src.certificate_generator import CertificateGenerator
+
+    cert_gen = CertificateGenerator(output_dir=str(tmp_path))
+    test_ev_hash = "0x" + hashlib.sha256(b"unit_test_evidence_cert").hexdigest()
+
+    rec = {
+        "evidence_hash": test_ev_hash,
+        "face_hash": "0x" + "a" * 64,
+        "media_hash": "0x" + "b" * 64,
+        "platform": "Genesis Origin Registry",
+        "source_url": "genesis://origin-master",
+        "verifier": "0x71C95911E9a5D330f4D621842EC243EE1343292e",
+        "block_number": 42,
+        "timestamp": 1757000000,
+        "face_crop_path": sample_image,
+        "record_type": "GENESIS_ORIGINAL",
+        "is_tampered": False
+    }
+
+    cert_path = cert_gen.generate_certificate_html(rec, save_filename="test_cert.html")
+    assert os.path.exists(cert_path)
+
+    with open(cert_path, "r", encoding="utf-8") as f:
+        html = f.read()
+
+    assert test_ev_hash in html
+    assert "data:image/png;base64," in html
+    assert "data:image/jpeg;base64," in html
+
+    # Verify embedded QR Code decodes back accurately
+    match = re.search(r'data:image/png;base64,([A-Za-z0-9+/=]+)', html)
+    assert match is not None
+    png_bytes = base64.b64decode(match.group(1))
+    nparr = np.frombuffer(png_bytes, np.uint8)
+    qr_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+    detector = cv2.QRCodeDetector()
+    decoded_text, _, _ = detector.detectAndDecode(qr_img)
+    assert test_ev_hash in decoded_text
+
+

@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![Web3.py](https://img.shields.io/badge/Web3.py-v8.0.0-F16822?logo=ethereum)](https://web3py.readthedocs.io/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-YuNet_DNN-5C3EE8?logo=opencv)](https://opencv.org/)
-[![Tests](https://img.shields.io/badge/Tests-5%2F5%20Passing-brightgreen)](https://docs.pytest.org/)
+[![Tests](https://img.shields.io/badge/Tests-11%2F11%20Passing-brightgreen)](https://docs.pytest.org/)
 
 ---
 
@@ -220,6 +220,40 @@ python show_ledger.py --hash <EVIDENCE_ROOT_HASH>
 
 ---
 
+### 🔬 Biometric Forensic Lab & Tamper Heatmap Inspector
+Run deep mathematical forensics to detect digital splicing, re-compression anomalies, and localized face modifications:
+```bash
+# Standalone image inspection (Error Level Analysis + High-Frequency Noise)
+python forensic_analyzer.py --image samples/sample_face.jpg
+
+# Differential forensic audit between Genesis original and target image
+python forensic_analyzer.py --original samples/sample_face.jpg --image output/altered_face.jpg
+```
+**Capabilities**:
+* **Error Level Analysis (ELA)**: Recompresses images at fixed quality to surface resaved, cloned, or spliced regions.
+* **Laplacian Noise Analysis**: Detects edge variance inconsistencies along face blending seams typical of deepfake face-swaps.
+* **Differential Tamper Heatmaps**: Generates full-color visual heatmaps (`COLORMAP_JET`) highlighting modified zones.
+* **4-Panel Audit Cards**: Generates executive comparison composites: `[Genesis Master] | [Target Scan] | [Tamper Heatmap] | [ELA Residuals]`.
+
+---
+
+### 📜 Verifiable Cryptographic Biometric Certificates
+Issue standalone, tamper-evident HTML Certificates of Authenticity directly from on-chain records:
+```bash
+# Issue certificate for any registered record by on-chain evidence hash
+python generate_certificate.py --hash <EVIDENCE_ROOT_HASH>
+
+# Or issue certificate directly during re-verification with forensic audit
+python verify_record.py --evidence output/evidence_manifest.json --forensics --certificate
+```
+**Certificate Highlights**:
+* **Holographic Security Seal**: Embedded SVG metallic shield and attestation badge.
+* **Scannable QR Verification Proof**: Encodes direct on-chain verification URLs using OpenCV's built-in QR encoder and roundtrip-tested decoding.
+* **Embedded Biometric Proofs**: Self-contained base64 face crop previews, Keccak-256 evidence roots, and SHA-256 fingerprints.
+* **Print-to-PDF Ready**: Formatted with custom `@media print` styling for generating official forensic identity attestations.
+
+---
+
 ## 🧪 Automated Test Suite
 
 Run the comprehensive unit and integration tests using `pytest`:
@@ -227,12 +261,18 @@ Run the comprehensive unit and integration tests using `pytest`:
 pytest -v
 ```
 
-**Tested Scenarios**:
+**Tested Scenarios (11/11 Passing)**:
 1. `test_face_detection_and_encoding`: Validates YuNet face bounding box detection, normalization, and SHA-256 / dHash generation.
 2. `test_search_engine_platform_identification`: Validates domain-to-platform mapping (Twitter/X, Reddit, GitHub, LinkedIn).
 3. `test_evidence_packaging_determinism`: Proves mathematical determinism of canonical Keccak-256 evidence hashes.
 4. `test_blockchain_smart_contract_full_cycle`: Tests on-chain deployment, record registration, retrieval, authentic verification, and tamper rejection.
 5. `test_genesis_origin_and_altered_derivative_detection`: Tests anchoring of unseen faces as Genesis Originals and automated biometric detection & flagging of altered photo derivatives.
+6. `test_face_crop_and_manifest_tamper_detection`: Validates detection when face crop image bytes or manifest parameters are altered.
+7. `test_multi_generation_derivative_traces_to_root_genesis`: Proves multi-generation derivatives correctly trace lineage back to the root Genesis master.
+8. `test_ledger_analytics_summary`: Validates executive ledger statistics, gas calculations, and classification counting.
+9. `test_forensic_ela_and_noise_analysis`: Tests Error Level Analysis (ELA) and Laplacian noise variance calculation on face scans.
+10. `test_forensic_differential_tamper_heatmap`: Validates differential tamper detection, localized contour bounding box extraction, and heatmap generation.
+11. `test_cryptographic_certificate_generation_and_qr_roundtrip`: Asserts self-contained HTML certificate generation and verifies OpenCV QR code decoding roundtrip.
 
 ---
 

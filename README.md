@@ -6,7 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
 [![Web3.py](https://img.shields.io/badge/Web3.py-v8.0.0-F16822?logo=ethereum)](https://web3py.readthedocs.io/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-YuNet_DNN-5C3EE8?logo=opencv)](https://opencv.org/)
-[![Tests](https://img.shields.io/badge/Tests-11%2F11%20Passing-brightgreen)](https://docs.pytest.org/)
+[![Tests](https://img.shields.io/badge/Tests-12%2F12%20Passing-brightgreen)](https://docs.pytest.org/)
 
 ---
 
@@ -95,8 +95,8 @@ By binding a normalized biometric face crop, discovered media assets, platform m
 
 ### 2. Clone and Setup Environment
 ```bash
-git clone <your-repo-url>
-cd HHGOA-26
+git clone https://github.com/SharandeepSingh295/TEAM-KOHINOOR.git
+cd TEAM-KOHINOOR
 
 # Create and activate Python virtual environment
 python -m venv .venv
@@ -120,6 +120,13 @@ cp .env.example .env
 ```
 * Leave `BLOCKCHAIN_MODE=local` to run with the built-in zero-friction EVM simulator.
 * Set `SERPAPI_API_KEY` if you wish to enable Google Lens reverse search.
+
+### 🐳 Quick Start with Docker
+Run the entire stack in an isolated container without needing local Python or Node dependencies:
+```bash
+docker compose up --build
+```
+Then visit **`http://localhost:5000`** in your browser.
 
 ---
 

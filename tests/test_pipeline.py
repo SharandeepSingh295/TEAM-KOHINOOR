@@ -439,3 +439,26 @@ def test_cryptographic_certificate_generation_and_qr_roundtrip(sample_image, tmp
     assert test_ev_hash in decoded_text
 
 
+def test_web_app_health_and_status():
+    import asyncio
+    from aiohttp.test_utils import TestServer, TestClient
+    from web_app import create_app
+
+    async def _run():
+        app = create_app()
+        async with TestClient(TestServer(app)) as client:
+            resp = await client.get("/api/health")
+            assert resp.status == 200
+            data = await resp.json()
+            assert data["status"] == "healthy"
+            assert data["service"] == "KohinoorGuard"
+
+            resp_status = await client.get("/api/status")
+            assert resp_status.status == 200
+            data_status = await resp_status.json()
+            assert data_status["status"] == "ready"
+
+    asyncio.run(_run())
+
+
+

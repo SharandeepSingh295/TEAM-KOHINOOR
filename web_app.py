@@ -936,9 +936,18 @@ async def handle_forensics(request):
     })
 
 
+async def handle_health(request):
+    return web.json_response({
+        "status": "healthy",
+        "service": "KohinoorGuard",
+        "timestamp": int(time.time())
+    })
+
+
 def create_app():
     app = web.Application()
     app.router.add_get("/", handle_index)
+    app.router.add_get("/api/health", handle_health)
     app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/records", handle_records)
     app.router.add_get("/api/verify", handle_verify)

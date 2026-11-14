@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kohinoorguard"
+version = "1.0.0"
+description = "End-to-End Face Scan Ingestion, Live Web/Social Media Discovery, and Blockchain Tamper-Evident Attestation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+  { name = "TEAM KOHINOOR" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+  "Topic :: Security :: Cryptography"
+]
+dependencies = [
+  "web3>=6.15.0",
+  "eth-tester>=0.10.0b4",
+  "py-evm>=0.10.0b1",
+  "opencv-python-headless>=4.9.0.80",
+  "numpy>=1.26.0",
+  "requests>=2.31.0",
+  "aiohttp>=3.9.0",
+  "rich>=13.7.0",
+  "pydantic>=2.6.0",
+  "python-dotenv>=1.0.1"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0"
+]

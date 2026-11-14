@@ -458,6 +458,16 @@ def test_web_app_health_and_status():
             data_status = await resp_status.json()
             assert data_status["status"] == "ready"
 
+            # Test export JSON
+            resp_export_json = await client.get("/api/export?format=json")
+            assert resp_export_json.status == 200
+            assert "application/json" in resp_export_json.headers["Content-Type"]
+
+            # Test export CSV
+            resp_export_csv = await client.get("/api/export?format=csv")
+            assert resp_export_csv.status == 200
+            assert "text/csv" in resp_export_csv.headers["Content-Type"]
+
     asyncio.run(_run())
 
 

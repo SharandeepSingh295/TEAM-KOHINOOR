@@ -349,9 +349,17 @@ HTML_PAGE = """<!DOCTYPE html>
             <h3 class="font-bold text-lg text-white">Anchored Records Ledger</h3>
             <p class="text-xs text-gray-400">All discoveries recorded and verifiable on the smart contract</p>
           </div>
-          <button onclick="loadLedger()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-            <i class="fa-solid fa-arrows-rotate"></i> Refresh
-          </button>
+          <div class="flex items-center gap-2">
+            <a href="/api/export?format=json" download="kohinoorguard_ledger.json" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-file-arrow-down"></i> Export JSON
+            </a>
+            <a href="/api/export?format=csv" download="kohinoorguard_ledger.csv" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </a>
+            <button onclick="loadLedger()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-arrows-rotate"></i> Refresh
+            </button>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -936,6 +944,45 @@ async def handle_forensics(request):
     })
 
 
+async def handle_export(request):
+    fmt = request.query.get("format", "json").lower()
+    records = {}
+    if os.path.exists(LOCAL_LEDGER_FILE):
+        try:
+            with open(LOCAL_LEDGER_FILE, "r", encoding="utf-8") as f:
+                records = json.load(f)
+        except Exception:
+            records = {}
+
+    if fmt == "csv":
+        import io, csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Evidence Hash", "Platform", "Source URL", "Face Hash", "Media Hash", "Block Number", "Transaction Hash", "Timestamp"])
+        for item in records.values():
+            writer.writerow([
+                item.get("evidence_hash", ""),
+                item.get("platform", ""),
+                item.get("source_url", ""),
+                item.get("face_hash", ""),
+                item.get("media_hash", ""),
+                item.get("block_number", ""),
+                item.get("transaction_hash", ""),
+                item.get("timestamp", "")
+            ])
+        return web.Response(
+            text=output.getvalue(),
+            content_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="kohinoorguard_ledger.csv"'}
+        )
+    else:
+        return web.Response(
+            text=json.dumps(list(records.values()), indent=2),
+            content_type="application/json",
+            headers={"Content-Disposition": 'attachment; filename="kohinoorguard_ledger.json"'}
+        )
+
+
 async def handle_health(request):
     return web.json_response({
         "status": "healthy",
@@ -950,6 +997,7 @@ def create_app():
     app.router.add_get("/api/health", handle_health)
     app.router.add_get("/api/status", handle_status)
     app.router.add_get("/api/records", handle_records)
+    app.router.add_get("/api/export", handle_export)
     app.router.add_get("/api/verify", handle_verify)
     app.router.add_get("/api/certificate", handle_certificate)
     app.router.add_get("/api/forensics", handle_forensics)

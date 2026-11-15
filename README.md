@@ -18,6 +18,35 @@ By binding a normalized biometric face crop, discovered media assets, platform m
 
 ---
 
+## 🎯 Real-World Utility & Industry Applications
+
+With generative AI making it effortless to synthesize faces, manipulate photos, and orchestrate identity theft, traditional image metadata (like EXIF) is easily stripped or forged. KohinoorGuard delivers verifiable proof across key real-world scenarios:
+
+```
+           ┌───────────────────────────────────────────────┐
+           │          KOHINOORGUARD ARCHITECTURE           │
+           └───────────────────────┬───────────────────────┘
+                                   │
+      ┌────────────────┬───────────┴────────────┬────────────────┐
+      ▼                ▼                        ▼                ▼
+[ Web3 & DAOs ]  [ Cyber Insurance ]     [ Journalism / Media ]  [ Legal Forensics ]
+Sybil-resistant  CEO Fraud & Executive   Viral Photo Fact-Check  Court-Admissible
+Proof-of-Person  Impersonation Defense   & Deepfake Debunking    Chain of Custody
+```
+
+1. **🛡️ Combating Deepfakes & Synthetic Likeness Abuse**:
+   * Detects digital splicing, face-swapping boundaries, and generative AI tampering using Error Level Analysis (ELA) and Laplacian edge variance, producing visual color-coded heatmaps of altered zones.
+2. **🏛️ Tamper-Proof Digital Identity & Genesis Copyright**:
+   * Empowers photographers, public figures, models, and creators to anchor their original portraits as immutable **"Genesis Master References"** on-chain with non-repudiable timestamped proofs of prior existence.
+3. **🔍 Fraudulent & Altered KYC Prevention**:
+   * Enables financial and Web3 institutions to verify user verification selfies against on-chain biometric baselines to eliminate synthetic identity fraud and re-used altered ID documents.
+4. **📰 Fact-Checking & Digital Forensics for Journalism**:
+   * Grants journalists, media outlets, and fact-checking organizations instant tools to verify viral visual media against an immutable ledger and export standalone cryptographic HTML/SVG Certificates of Authenticity with scannable QR verification seals.
+5. **🌐 Automated Public Likeness Tracking**:
+   * Scans and discovers unauthorized visual appearances of an individual's likeness across public social graphs (Twitter/X, Instagram, LinkedIn, Reddit) without storing raw biometrics on-chain.
+
+---
+
 ## 🏗️ Pipeline Architecture
 
 ```
@@ -67,22 +96,40 @@ By binding a normalized biometric face crop, discovered media assets, platform m
 
 ---
 
-## ⚡ Technical Highlights
+## ⚡ Technical Highlights & Mathematical Architecture
 
-1. **Face Detection & Encoding (Stage 1)**:
-   * Powered by OpenCV's **YuNet deep learning ONNX detector**, ensuring sub-millisecond facial landmark identification, alignment, and bounding box normalization.
-   * Produces both a 32-byte cryptographic SHA-256 hash of the standardized face bytes and a 64-bit difference hash (`dHash`) for perceptual feature resilience.
+### 1. Dual-Layer Biometric Hashing (Crypto + Perceptual)
+Pure cryptographic hashing alone is brittle for visual media because changing a single pixel or compression artifact completely scrambles a SHA-256 hash. KohinoorGuard solves this by deploying a **two-tier hashing strategy**:
 
-2. **Genuine Social Media Search (Stage 2)**:
-   * **No hardcoded results**: Executes live queries against public social graph endpoints (e.g. GitHub user profiles and developer avatars) and reverse search engines.
-   * Supports plug-and-play **SerpApi Google Lens** integration by specifying `SERPAPI_API_KEY` in `.env`.
+| Layer | Algorithm | Format | Purpose |
+| :--- | :--- | :--- | :--- |
+| **Exact Integrity** | **SHA-256** | 32-byte hex (`0x...`) | Bit-for-bit tamper detection. If an asset is altered by even $1$ byte, verification fails immediately. |
+| **Perceptual Identity** | **Difference Hash (`dHash`)** | 64-bit binary string | Visual likeness comparison. Resilient against recompression, color adjustments, lighting shifts, and platform compression. |
 
-3. **Dual-Mode Blockchain Architecture (Stage 4)**:
-   * **Local In-Memory EVM (`mode: local`)**: Powered by `EthereumTesterProvider` (`py-evm`), allowing zero-cost, instantaneous testing and offline demonstrations without faucets or keys. Includes automated ledger persistence to allow separate CLI processes to inspect the same state.
-   * **Public EVM Testnet (`mode: testnet`)**: Seamlessly deploys and broadcasts transactions to public testnets like **Polygon Amoy** or **Ethereum Sepolia** by populating `.env`.
+* **Similarity Formulation**:
+  $$\text{Similarity} = 1.0 - \left(\frac{\text{Hamming Distance}(\text{Hash}_1, \text{Hash}_2)}{64}\right)$$
+  * **$\ge 80\%$ Similarity**: Classifies the image as the **same subject** (flags potential deepfakes, crops, or altered derivatives).
+  * **$100\%$ Bit Match**: Confirms **unaltered original state**.
 
-4. **Cryptographic Tamper-Evidence (Stage 5)**:
-   * Re-evaluates assets against `FaceVerificationRegistry.sol` via `verify_integrity()`. If an asset, post URL, or face crop has been altered by even a single byte, the verification engine instantly triggers a **[TAMPER DETECTED]** alert.
+### 2. YuNet Landmark Alignment & Normalization
+* Powered by OpenCV's **YuNet deep learning ONNX detector**, ensuring sub-millisecond facial landmark identification (pupils, nose tip, and mouth corners) and rotation normalization.
+* Normalizes the crop to a standardized $256 \times 256$ dimension using **Lanczos-4 interpolation** with a $15\%$ padding margin.
+
+### 3. Genuine Social Media Search (Stage 2)
+* **No hardcoded results**: Executes live queries against public social graph endpoints (e.g. GitHub user profiles and developer avatars) and reverse search engines.
+* Supports plug-and-play **SerpApi Google Lens** integration by specifying `SERPAPI_API_KEY` in `.env`.
+
+### 4. Forensic Error Level Analysis (ELA) & Laplacian Noise
+* Recompresses the candidate image in memory at a fixed $90\%$ JPEG quality and computes the absolute differential matrix: $\Delta = |I_{\text{original}} - I_{\text{recompressed}}|$.
+* Scales differences by factor $\alpha = 15$ to surface spliced or cloned boundaries as bright clusters.
+* Applies Laplacian high-frequency edge filters to detect blending seams along facial contours characteristic of deepfake swaps.
+
+### 5. Dual-Mode Blockchain Architecture (Stage 4)
+* **Local In-Memory EVM (`mode: local`)**: Powered by `EthereumTesterProvider` (`py-evm`), allowing zero-cost, instantaneous testing and offline demonstrations without faucets or keys. Includes automated ledger persistence to allow separate CLI processes to inspect the same state.
+* **Public EVM Testnet (`mode: testnet`)**: Seamlessly deploys and broadcasts transactions to public testnets like **Polygon Amoy** or **Ethereum Sepolia** by populating `.env`.
+
+### 6. Cryptographic Tamper-Evidence (Stage 5)
+* Re-evaluates assets against `FaceVerificationRegistry.sol` via `verify_integrity()`. If an asset, post URL, or face crop has been altered by even a single byte, the verification engine instantly triggers a **[TAMPER DETECTED]** alert.
 
 ---
 
@@ -268,7 +315,7 @@ Run the comprehensive unit and integration tests using `pytest`:
 pytest -v
 ```
 
-**Tested Scenarios (11/11 Passing)**:
+**Tested Scenarios (12/12 Passing)**:
 1. `test_face_detection_and_encoding`: Validates YuNet face bounding box detection, normalization, and SHA-256 / dHash generation.
 2. `test_search_engine_platform_identification`: Validates domain-to-platform mapping (Twitter/X, Reddit, GitHub, LinkedIn).
 3. `test_evidence_packaging_determinism`: Proves mathematical determinism of canonical Keccak-256 evidence hashes.
@@ -280,6 +327,7 @@ pytest -v
 9. `test_forensic_ela_and_noise_analysis`: Tests Error Level Analysis (ELA) and Laplacian noise variance calculation on face scans.
 10. `test_forensic_differential_tamper_heatmap`: Validates differential tamper detection, localized contour bounding box extraction, and heatmap generation.
 11. `test_cryptographic_certificate_generation_and_qr_roundtrip`: Asserts self-contained HTML certificate generation and verifies OpenCV QR code decoding roundtrip.
+12. `test_web_app_health_and_status`: Validates REST API health checks (`/api/health`), status, and ledger data export (`/api/export`) in both JSON and CSV formats.
 
 ---
 
